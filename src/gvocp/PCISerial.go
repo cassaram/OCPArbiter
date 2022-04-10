@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/tarm/serial"
@@ -40,19 +41,27 @@ func (s *PCISerial) chkser() bool {
 	return false
 }
 
-// Update receiver buffer
-func (s *PCISerial) read() {
+// Take a character from the receive buffer
+func (s *PCISerial) getser() byte {
+	var result byte
 	if s.isRunning {
-		_, err := s.serialPort.Read(s.receiveBuffer)
+		len, err := s.serialPort.Read(s.receiveBuffer)
 		if err != nil {
 			log.Fatal(err)
 		}
+		if len > 0 {
+			result = s.receiveBuffer[0]
+		}
 	}
+	return result
 }
 
-// Take a character from the receive buffer
-func (s *PCISerial) getser() byte {
-	// Update receiever buffer
-	s.read()
+// TEST ONLY
+func main() {
+	var test PCISerial
+	test.ser_init("COM3")
 
+	for true {
+		fmt.Println(test.getser())
+	}
 }
