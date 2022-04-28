@@ -1,6 +1,7 @@
 package pci
 
 import (
+	"fmt"
 	"log"
 
 	"go.bug.st/serial"
@@ -23,17 +24,22 @@ const (
 	GROUP_NONE byte = 0x10
 )
 
+// Struct for channels
+type Channel struct {
+	group byte
+	pc_id byte
+}
+
 type PCI struct {
 	port                serial.Port
 	rxBuffer            []byte
 	dataMessageHandler  func(PCIPacket)
 	testRingInitialized bool
-	d_id                byte
-	group               byte
-	grpChannels         []byte
+	id                  byte
+	channels            [4]Channel
 }
 
-func (p *PCI) setPort(name string, destinationID byte) {
+func (p *PCI) SetPort(name string, destinationID byte) {
 	// Configure serial port for PCI
 	mode := &serial.Mode{
 		BaudRate: 9600,
@@ -50,14 +56,22 @@ func (p *PCI) setPort(name string, destinationID byte) {
 	// Handle opened port
 	p.port = port
 	p.testRingInitialized = false
-	p.d_id = destinationID
-	p.group = GROUP_NONE
+	p.id = destinationID
+
+	for i := 0; i < len(p.channels); i++ {
+		p.channels[i] = Channel{
+			group: GROUP_NONE,
+			pc_id: 0,
+		}
+	}
 }
 
 // Function to send a PCIPacket
 func (p *PCI) sendPacket(pkt PCIPacket) (err error) {
 	// Encode into byte slice
+	fmt.Printf("Sending packet: %[1]v\n", pkt)
 	dec_msg := pkt.packetToMessage()
+	fmt.Printf("Sending decoded message: [% x]\n", dec_msg)
 	enc_msg := uuencode(dec_msg)
 
 	// Add header sync bit
@@ -73,7 +87,7 @@ func (p *PCI) sendPacket(pkt PCIPacket) (err error) {
 
 // Handles the opened port, receiving messages, and handling those messages
 // Should be called periodically
-func (p *PCI) handleData() {
+func (p *PCI) HandleData() {
 	// Read to temporary buffer
 	tempBuff := make([]byte, 100)
 	len, _ := p.port.Read(tempBuff)
@@ -96,8 +110,11 @@ func (p *PCI) handleData() {
 		if item == 13 {
 			// Extract message
 			enc_msg := msgExtract(p.rxBuffer, headerIndx, i)
+			// Remove message from buffer
+			p.rxBuffer = append(p.rxBuffer[:headerIndx], p.rxBuffer[i+1:]...)
 			// Decode message
 			dec_msg := uudecode(enc_msg)
+			fmt.Printf("Received decoded message: [% x]\n", dec_msg)
 			// Convert to PCI Packet
 			pkt, err := messageToPacket(dec_msg)
 			if err != nil {
@@ -122,12 +139,22 @@ func msgExtract(src []byte, start int, end int) (dst []byte) {
 // Function to handle when a packet arrives
 // Will first handle PCI-protocol specified tasks, then offload to handler
 func (p *PCI) packetArrived(pkt PCIPacket) {
+	fmt.Printf("Packet Arrived: %[1]v\n", pkt)
+
 	switch pkt.command {
 	case DATA_MESSAGE:
 		p.dataMessageHandler(pkt)
 	case TEST_RING:
 		p.handleTestRing(pkt)
 	case ASSIGN_TO_GROUP:
+		p.handleAssignToGroup(pkt)
+	case CONNECTED_TO_PART:
+		p.handleConnectedToPart(pkt)
+	case DEASSIGN_FROM_GROUP:
+		p.handleDeassignFromGroup(pkt)
+	case MULTICAST_MODE:
+
+	case MULTIPLEXED:
 
 	}
 }
@@ -144,15 +171,16 @@ func (p *PCI) handleTestRing(pkt PCIPacket) {
 	//moduleTypePCI := (flag&0x04 != 0)
 	resetRing := (flag&0x80 != 0)
 
+	// Handle reset request
+	if resetRing {
+		// Reset all channel assignments
+		p.testRingInitialized = true
+	}
+
 	// Ensure ring has already been reset
 	if !p.testRingInitialized {
 		// Set reset request bit
 		flag |= 0x01
-	}
-
-	// Handle reset request
-	if resetRing {
-		// Reset all channel assignments
 	}
 
 	// Set PCI type bit if d_id match
@@ -192,22 +220,27 @@ func (p *PCI) handleAssignToGroup(pkt PCIPacket) {
 	grpNum := grpByte & 0x0F
 	//noInit := ((grpByte & 0x80) != 0)
 
-	if (!p.intendedRecepient(pkt)) || (p.group == GROUP_NONE) {
+	chanID := p.getFreeChannel()
+
+	if !p.intendedRecepient(pkt) || chanID < 0 {
 		// Cannot execute command, pass along instead
 		p.sendPacket(pkt)
 		return
 	}
 
-	// Connect & send CONNECTED_TO_PART command
-	p.group = grpNum
+	// Connect to channel
+	p.channels[chanID].group = grpNum
+	p.channels[chanID].pc_id = pkt.source_ID
 
-	stat := byte(0x02) // Channel # (7-4), Camera (1), Base station (0)
+	stat := byte(0x02) // Channel # (5-4), Camera (1), Base station (0)
+	stat |= byte(chanID) & 0x3 << 4
 
+	// Inform PC device
 	var connectedParams []byte
 	connectedParams = append(connectedParams, grpNum, stat)
 
 	connectedPkt := PCIPacket{
-		source_ID:      p.d_id,
+		source_ID:      p.id,
 		destination_ID: pkt.source_ID,
 		command:        CONNECTED_TO_PART,
 		parameters:     connectedParams,
@@ -226,7 +259,7 @@ func (p *PCI) handleConnectedToPart(pkt PCIPacket) {
 
 // Handle DEASSIGN_FROM_GROUP messages
 func (p *PCI) handleDeassignFromGroup(pkt PCIPacket) {
-	grp := pkt.parameters[0]
+	//grp := pkt.parameters[0]
 }
 
 // Encodes a message and returns the encoded message as a new slice
@@ -242,29 +275,29 @@ func uuencode(dec_msg []byte) (enc_msg []byte) {
 		}
 	}
 
-	for i := byte(0); i < dec_len; i += 3 {
-		enc_msg = append(enc_msg, (dec_msg[(i*3)+0]&0x3F)+32)
-		enc_msg = append(enc_msg, (dec_msg[(i*3)+1]&0x3F)+32)
-		enc_msg = append(enc_msg, (dec_msg[(i*3)+2]&0x3F)+32)
+	for i := byte(0); i < dec_len-2; i += 3 {
+		enc_msg = append(enc_msg, (dec_msg[i+0]&0x3F)+32)
+		enc_msg = append(enc_msg, (dec_msg[i+1]&0x3F)+32)
+		enc_msg = append(enc_msg, (dec_msg[i+2]&0x3F)+32)
 
 		enc_byte := byte(0)
 
-		if (dec_msg[(i*3)+0] & 0x40) != 0 {
+		if (dec_msg[i+0] & 0x40) != 0 {
 			enc_byte |= 0x01
 		}
-		if (dec_msg[(i*3)+0] & 0x80) != 0 {
+		if (dec_msg[i+0] & 0x80) != 0 {
 			enc_byte |= 0x02
 		}
-		if (dec_msg[(i*3)+1] & 0x40) != 0 {
+		if (dec_msg[i+1] & 0x40) != 0 {
 			enc_byte |= 0x04
 		}
-		if (dec_msg[(i*3)+1] & 0x80) != 0 {
+		if (dec_msg[i+1] & 0x80) != 0 {
 			enc_byte |= 0x08
 		}
-		if (dec_msg[(i*3)+2] & 0x40) != 0 {
+		if (dec_msg[i+2] & 0x40) != 0 {
 			enc_byte |= 0x10
 		}
-		if (dec_msg[(i*3)+2] & 0x80) != 0 {
+		if (dec_msg[i+2] & 0x80) != 0 {
 			enc_byte |= 0x20
 		}
 
@@ -319,5 +352,19 @@ func uudecode(enc_msg []byte) (dec_msg []byte) {
 // return : true if it is for this device
 func (p *PCI) intendedRecepient(pkt PCIPacket) bool {
 	// Function needs to exist to handle "for-all" type messages (0xF)
-	return ((pkt.destination_ID == p.d_id) || (pkt.destination_ID == 0xF))
+	return ((pkt.destination_ID == p.id) || (pkt.destination_ID == 0xF))
+}
+
+func (p *PCI) hasFreeChannel() bool {
+	return p.getFreeChannel() < 0
+}
+
+func (p *PCI) getFreeChannel() int {
+	for i := 0; i < len(p.channels); i++ {
+		if p.channels[i].group == GROUP_NONE {
+			return i
+		}
+	}
+
+	return -1
 }

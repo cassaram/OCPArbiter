@@ -46,6 +46,12 @@ func (p *PCIPacket) packetToMessage() (decodedMsg []byte) {
 	// Handle checksum
 	decodedMsg = append(decodedMsg, calc_chk(decodedMsg, length-1, 0))
 
+	// Pad with 0's to a multiple of 3 bytes
+	msgLength := len(decodedMsg)
+	for i := 0; i < 3-(msgLength%3); i++ {
+		decodedMsg = append(decodedMsg, 0x00)
+	}
+
 	// Return
 	return
 }
