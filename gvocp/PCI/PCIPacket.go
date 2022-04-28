@@ -11,19 +11,6 @@ type PCIPacket struct {
 	parameters     []byte
 }
 
-// Enum for PCI command types
-type PCI_CMD byte
-
-const (
-	DATA_MESSAGE        PCI_CMD = 0
-	TEST_RING           PCI_CMD = 1
-	ASSIGN_TO_GROUP     PCI_CMD = 2
-	CONNECTED_TO_PART   PCI_CMD = 3
-	DEASSIGN_FROM_GROUP PCI_CMD = 4
-	MULTICAST_MODE      PCI_CMD = 5
-	MULTIPLEXED         PCI_CMD = 7
-)
-
 // messageToPacket returns a PCIPacket object from a decoded byte slice
 func messageToPacket(decodedMsg []byte) (pkt PCIPacket, err error) {
 	// Handle byte 0 (S_ID | D_ID)
