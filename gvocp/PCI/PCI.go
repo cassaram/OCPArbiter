@@ -33,7 +33,7 @@ type Channel struct {
 type PCI struct {
 	port                serial.Port
 	rxBuffer            []byte
-	dataMessageHandler  func(PCIPacket)
+	dataMessageHandler  func(byte, byte, []byte)
 	testRingInitialized bool
 	id                  byte
 	channels            [4]Channel
@@ -66,12 +66,33 @@ func (p *PCI) SetPort(name string, destinationID byte) {
 	}
 }
 
+// Function to link a function as a datamessage handler
+func (p *PCI) SetDataMessageHandler(function func(byte, byte, []byte)) {
+	p.dataMessageHandler = function
+}
+
+// Function to send a data message
+func (p *PCI) SendDataMessage(d_id byte, group byte, command byte, params []byte) {
+	var txParams []byte
+	txParams = append(txParams, group&0x07)
+	txParams = append(txParams, command)
+	txParams = append(txParams, params...)
+
+	var pkt PCIPacket
+	pkt.command = DATA_MESSAGE
+	pkt.source_ID = p.id
+	pkt.destination_ID = d_id
+	pkt.parameters = txParams
+
+	p.sendPacket(pkt)
+}
+
 // Function to send a PCIPacket
 func (p *PCI) sendPacket(pkt PCIPacket) (err error) {
 	// Encode into byte slice
 	fmt.Printf("Sending packet: %[1]v\n", pkt)
 	dec_msg := pkt.packetToMessage()
-	fmt.Printf("Sending decoded message: [% x]\n", dec_msg)
+	//fmt.Printf("Sending decoded message: [% x]\n", dec_msg)
 	enc_msg := uuencode(dec_msg)
 
 	// Add header sync bit
@@ -114,7 +135,7 @@ func (p *PCI) HandleData() {
 			p.rxBuffer = append(p.rxBuffer[:headerIndx], p.rxBuffer[i+1:]...)
 			// Decode message
 			dec_msg := uudecode(enc_msg)
-			fmt.Printf("Received decoded message: [% x]\n", dec_msg)
+			//fmt.Printf("Received decoded message: [% x]\n", dec_msg)
 			// Convert to PCI Packet
 			pkt, err := messageToPacket(dec_msg)
 			if err != nil {
@@ -139,11 +160,11 @@ func msgExtract(src []byte, start int, end int) (dst []byte) {
 // Function to handle when a packet arrives
 // Will first handle PCI-protocol specified tasks, then offload to handler
 func (p *PCI) packetArrived(pkt PCIPacket) {
-	fmt.Printf("Packet Arrived: %[1]v\n", pkt)
+	//fmt.Printf("Packet Arrived: %[1]v\n", pkt)
 
 	switch pkt.command {
 	case DATA_MESSAGE:
-		p.dataMessageHandler(pkt)
+		p.handleDataMessage(pkt)
 	case TEST_RING:
 		p.handleTestRing(pkt)
 	case ASSIGN_TO_GROUP:
@@ -157,6 +178,32 @@ func (p *PCI) packetArrived(pkt PCIPacket) {
 	case MULTIPLEXED:
 
 	}
+}
+
+// Function to handle a data message being received
+func (p *PCI) handleDataMessage(pkt PCIPacket) {
+	// Extract info
+	group := pkt.parameters[0] & 0x07
+	//msg_baseStation := (pkt.parameters[0] & 0x08) >> 3
+	//msg_camera := (pkt.parameters[0] & 0x10) >> 4
+	//noAck := (pkt.parameters[0] & 0x80) >> 7
+
+	// Ensure intended recepient
+	if p.intendedRecepient(pkt) {
+		chanIndex := p.getChannelFromGroup(group)
+		if chanIndex >= 0 {
+			if p.channels[chanIndex].pc_id == pkt.source_ID {
+				// Intendend Recepient
+				params := pkt.parameters[1:]
+				p.dataMessageHandler(pkt.source_ID, group, params)
+				return
+			}
+		}
+	}
+
+	// Not intended recepient, retransmit
+	p.sendPacket(pkt)
+
 }
 
 // Function to handle a test ring being received
@@ -232,7 +279,7 @@ func (p *PCI) handleAssignToGroup(pkt PCIPacket) {
 	p.channels[chanID].group = grpNum
 	p.channels[chanID].pc_id = pkt.source_ID
 
-	stat := byte(0x02) // Channel # (5-4), Camera (1), Base station (0)
+	stat := byte(0x00) // Channel # (5-4), Camera (1), Base station (0)
 	stat |= byte(chanID) & 0x3 << 4
 
 	// Inform PC device
@@ -362,6 +409,18 @@ func (p *PCI) hasFreeChannel() bool {
 func (p *PCI) getFreeChannel() int {
 	for i := 0; i < len(p.channels); i++ {
 		if p.channels[i].group == GROUP_NONE {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// Function to return index of a channel of the PCI object that responds to a group
+// Returns -1 if no channel is assigned to that group
+func (p *PCI) getChannelFromGroup(group byte) int {
+	for i, item := range p.channels {
+		if item.group == group {
 			return i
 		}
 	}
