@@ -20,6 +20,17 @@ const (
 	MULTIPLEXED         PCI_CMD = 7
 )
 
+// Enum for PCI connection state
+type PCI_CONNECTION_STATE int
+
+const (
+	PCI_AWAIT_START    PCI_CONNECTION_STATE = 0
+	PCI_WAIT_TEST_RING PCI_CONNECTION_STATE = 1
+	PCI_WAIT_ASSIGN    PCI_CONNECTION_STATE = 2
+	PCI_CONNECTED      PCI_CONNECTION_STATE = 3
+)
+
+// General enums
 const (
 	GROUP_NONE byte = 0x10
 )
@@ -31,12 +42,14 @@ type Channel struct {
 }
 
 type PCI struct {
-	port                serial.Port
-	rxBuffer            []byte
-	dataMessageHandler  func(byte, byte, []byte)
-	testRingInitialized bool
-	id                  byte
-	channels            [4]Channel
+	port                  serial.Port
+	rxBuffer              []byte
+	dataMessageHandler    func(byte, byte, []byte)
+	initConnectionHandler func(byte, byte)
+	testRingInitialized   bool
+	id                    byte
+	channels              [4]Channel
+	connectionState       PCI_CONNECTION_STATE
 }
 
 func (p *PCI) SetPort(name string, destinationID byte) {
@@ -64,11 +77,19 @@ func (p *PCI) SetPort(name string, destinationID byte) {
 			pc_id: 0,
 		}
 	}
+
+	// Set connection state
+	p.connectionState = PCI_AWAIT_START
 }
 
 // Function to link a function as a datamessage handler
 func (p *PCI) SetDataMessageHandler(function func(byte, byte, []byte)) {
 	p.dataMessageHandler = function
+}
+
+// Function to link a function as an init handler
+func (p *PCI) SetInitConnectionHandler(function func(byte, byte)) {
+	p.initConnectionHandler = function
 }
 
 // Function to send a data message
@@ -84,13 +105,15 @@ func (p *PCI) SendDataMessage(d_id byte, group byte, command byte, params []byte
 	pkt.destination_ID = d_id
 	pkt.parameters = txParams
 
+	fmt.Println("Sending data message: ", pkt)
+
 	p.sendPacket(pkt)
 }
 
 // Function to send a PCIPacket
 func (p *PCI) sendPacket(pkt PCIPacket) (err error) {
 	// Encode into byte slice
-	fmt.Printf("Sending packet: %[1]v\n", pkt)
+	//fmt.Printf("Sending packet: %[1]v\n", pkt)
 	dec_msg := pkt.packetToMessage()
 	//fmt.Printf("Sending decoded message: [% x]\n", dec_msg)
 	enc_msg := uuencode(dec_msg)
@@ -109,6 +132,11 @@ func (p *PCI) sendPacket(pkt PCIPacket) (err error) {
 // Handles the opened port, receiving messages, and handling those messages
 // Should be called periodically
 func (p *PCI) HandleData() {
+	// Check and update connection state
+	if p.connectionState == PCI_AWAIT_START {
+		p.connectionState = PCI_WAIT_TEST_RING
+	}
+
 	// Read to temporary buffer
 	tempBuff := make([]byte, 100)
 	len, _ := p.port.Read(tempBuff)
@@ -259,6 +287,11 @@ func (p *PCI) handleTestRing(pkt PCIPacket) {
 	}
 
 	p.sendPacket(txPkt)
+
+	// Check and update connection state
+	if p.connectionState == PCI_WAIT_TEST_RING {
+		p.connectionState = PCI_WAIT_ASSIGN
+	}
 }
 
 // Handles ASSIGN_TO_GROUP messages
@@ -294,6 +327,13 @@ func (p *PCI) handleAssignToGroup(pkt PCIPacket) {
 	}
 
 	p.sendPacket(connectedPkt)
+
+	// Check and update connection state
+	if p.connectionState == PCI_WAIT_ASSIGN {
+		p.connectionState = PCI_CONNECTED
+		// Inform caller
+		p.initConnectionHandler(pkt.source_ID, grpNum)
+	}
 }
 
 // Handle CONNECTED_TO_PART messages
