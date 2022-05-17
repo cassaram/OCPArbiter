@@ -52,6 +52,151 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 	switch GVCommand(command) {
 	case ABS_VALUE_CMD:
 		switch GVCommandParam(params[1]) {
+		case GAIN_RED_LEVEL:
+			// Get params
+			gainR := int(params[2])
+			// Force update value
+			ocp.cam.SetGainR(gainR)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(GAIN_RED_LEVEL),
+					byte(ocp.cam.GetGainR()),
+				},
+			)
+		case GAIN_GREEN_LEVEL:
+			// Get params
+			gainG := int(params[2])
+			// Force update value
+			ocp.cam.SetGainG(gainG)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(GAIN_GREEN_LEVEL),
+					byte(ocp.cam.GetGainG()),
+				},
+			)
+		case GAIN_BLUE_LEVEL:
+			// Get params
+			gainB := int(params[2])
+			// Force update value
+			ocp.cam.SetGainB(gainB)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(GAIN_BLUE_LEVEL),
+					byte(ocp.cam.GetGainB()),
+				},
+			)
+		case BLACK_RED_LEVEL:
+			// Get params
+			blackR := int(params[2])
+			// Force update value
+			ocp.cam.SetBlackR(blackR)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(BLACK_RED_LEVEL),
+					byte(ocp.cam.GetBlackR()),
+				},
+			)
+		case BLACK_GREEN_LEVEL:
+			// Get params
+			blackG := int(params[2])
+			// Force update value
+			ocp.cam.SetBlackG(blackG)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(BLACK_GREEN_LEVEL),
+					byte(ocp.cam.GetBlackG()),
+				},
+			)
+		case BLACK_BLUE_LEVEL:
+			// Get params
+			blackB := int(params[2])
+			// Force update value
+			ocp.cam.SetBlackB(blackB)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(BLACK_BLUE_LEVEL),
+					byte(ocp.cam.GetBlackB()),
+				},
+			)
+		case FLARE_RED_LEVEL:
+			// Get params
+			flareR := int(params[2])
+			// Force update value
+			ocp.cam.SetFlareR(flareR)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(FLARE_RED_LEVEL),
+					byte(ocp.cam.GetFlareR()),
+				},
+			)
+		case FLARE_GREEN_LEVEL:
+			// Get params
+			flareG := int(params[2])
+			// Force update value
+			ocp.cam.SetFlareG(flareG)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(FLARE_GREEN_LEVEL),
+					byte(ocp.cam.GetFlareG()),
+				},
+			)
+		case FLARE_BLUE_LEVEL:
+			// Get params
+			flareB := int(params[2])
+			// Force update value
+			ocp.cam.SetFlareB(flareB)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(FLARE_BLUE_LEVEL),
+					byte(ocp.cam.GetFlareB()),
+				},
+			)
+
 		case PCI_PANEL_RX_MSG_NR:
 			// Increment tx packets
 			ocp.txCount++
@@ -70,6 +215,171 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 			txParams := append([]byte{}, byte(PCI_CAM_RX_MSG_NR))
 			txParams = append(txParams, cnt[:]...)
 			ocp.connection.SendDataMessage(s_id, group, byte(ABS_VALUE_CMD), txParams)
+		}
+	case VALUE_CMD:
+		switch GVCommandParam(params[1]) {
+		case GAIN_RED_LEVEL:
+			// Get params
+			gainR := int(params[2])
+			// Calculate adjusted value
+			gainR += ocp.cam.GetGainR()
+			// Force update value
+			ocp.cam.SetGainR(gainR)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(GAIN_RED_LEVEL),
+					byte(ocp.cam.GetGainR()),
+				},
+			)
+		case GAIN_GREEN_LEVEL:
+			// Get params
+			gainG := int(params[2])
+			// Calculate adjusted value
+			gainG += ocp.cam.GetGainG()
+			// Force update value
+			ocp.cam.SetGainG(gainG)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(GAIN_GREEN_LEVEL),
+					byte(ocp.cam.GetGainG()),
+				},
+			)
+		case GAIN_BLUE_LEVEL:
+			// Get params
+			gainB := int(params[2])
+			// Calculate adjusted value
+			gainB += ocp.cam.GetGainB()
+			// Force update value
+			ocp.cam.SetGainB(gainB)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(GAIN_BLUE_LEVEL),
+					byte(ocp.cam.GetGainB()),
+				},
+			)
+		case BLACK_RED_LEVEL:
+			// Get params
+			blackR := int(params[2])
+			// Calculate adjusted value
+			blackR += ocp.cam.GetBlackR()
+			// Force update value
+			ocp.cam.SetBlackR(blackR)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(BLACK_RED_LEVEL),
+					byte(ocp.cam.GetBlackR()),
+				},
+			)
+		case BLACK_GREEN_LEVEL:
+			// Get params
+			blackG := int(params[2])
+			// Calculate adjusted value
+			blackG += ocp.cam.GetBlackG()
+			// Force update value
+			ocp.cam.SetBlackG(blackG)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(BLACK_GREEN_LEVEL),
+					byte(ocp.cam.GetBlackG()),
+				},
+			)
+		case BLACK_BLUE_LEVEL:
+			// Get params
+			blackB := int(params[2])
+			// Calculate adjusted value
+			blackB += ocp.cam.GetBlackB()
+			// Force update value
+			ocp.cam.SetBlackB(blackB)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(BLACK_BLUE_LEVEL),
+					byte(ocp.cam.GetBlackB()),
+				},
+			)
+		case FLARE_RED_LEVEL:
+			// Get params
+			flareR := int(params[2])
+			// Calculate adjusted value
+			flareR += ocp.cam.GetFlareR()
+			// Force update value
+			ocp.cam.SetFlareR(flareR)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(FLARE_RED_LEVEL),
+					byte(ocp.cam.GetFlareR()),
+				},
+			)
+		case FLARE_GREEN_LEVEL:
+			// Get params
+			flareG := int(params[2])
+			// Calculate adjusted value
+			flareG += ocp.cam.GetFlareG()
+			// Force update value
+			ocp.cam.SetFlareG(flareG)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(FLARE_GREEN_LEVEL),
+					byte(ocp.cam.GetFlareG()),
+				},
+			)
+		case FLARE_BLUE_LEVEL:
+			// Get params
+			flareB := int(params[2])
+			// Calculate adjusted value
+			flareB += ocp.cam.GetFlareB()
+			// Force update value
+			ocp.cam.SetFlareB(flareB)
+			// Update ocp
+			ocp.txCount++
+			ocp.connection.SendDataMessage(
+				s_id,
+				group,
+				byte(ABS_VALUE_CMD),
+				[]byte{
+					byte(FLARE_BLUE_LEVEL),
+					byte(ocp.cam.GetFlareB()),
+				},
+			)
 		}
 	}
 
