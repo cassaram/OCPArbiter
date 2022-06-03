@@ -12,5 +12,6 @@ func main() {
 	cam := common.Cam(&testCam)
 
 	cam.Initialize()
+	cam.SetCamNumber(1)
 	ocp.InitOCP(cam, "COM4")
 }

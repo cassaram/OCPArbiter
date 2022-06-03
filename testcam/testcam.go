@@ -6,6 +6,7 @@ import "github.com/cassaram/ocparbiter/common"
 
 type TestCam struct {
 	featureSet   common.CamFeatureSet
+	camNumber    int
 	callSignal   bool
 	colorBar     bool
 	gainMaster   int
@@ -47,6 +48,7 @@ type TestCam struct {
 
 func (c *TestCam) Initialize() {
 	// Setup features
+	c.featureSet.CamNumber = true
 	c.featureSet.CallSignal = true
 	c.featureSet.ColorBar = true
 	c.featureSet.GainMaster = true
@@ -107,6 +109,14 @@ func (c *TestCam) GetFeatureSet() common.CamFeatureSet {
 }
 
 // System
+func (c *TestCam) GetCamNumber() int {
+	return c.camNumber
+}
+
+func (c *TestCam) SetCamNumber(num int) {
+	c.camNumber = num
+}
+
 func (c *TestCam) GetCallSig() int {
 	if c.callSignal {
 		return 1

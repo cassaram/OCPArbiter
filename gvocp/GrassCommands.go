@@ -279,3 +279,95 @@ const (
 	SWITCHABLE_INTERCOM           GVSwitchParams = 26
 	COLOUR_BAR                    GVSwitchParams = 27
 )
+
+type GVModeParams uint8
+
+const (
+	SKIN_CONTOUR       GVModeParams = 1
+	GAIN_SELECT        GVModeParams = 2
+	KNEE_SELECT        GVModeParams = 3
+	GAMMA_SELECT       GVModeParams = 4
+	SYSTEMID_SELECT    GVModeParams = 5
+	FILTER_SELECT      GVModeParams = 6
+	AUDIO_FILTER       GVModeParams = 7
+	LENS_TYPE          GVModeParams = 8
+	MONITORING_SELECT  GVModeParams = 9
+	USER_LEVEL         GVModeParams = 10
+	CRTSCAN_SELECT     GVModeParams = 11
+	GAMMA_CURVE_SELECT GVModeParams = 12
+	KNEE_SOURCE_SELECT GVModeParams = 13
+	FLARE_SELECT       GVModeParams = 14
+	FSTOP_SELECT       GVModeParams = 15
+)
+
+type GVModeFStop uint8
+
+const (
+	FCT_FSTOP_010   GVModeFStop = 1
+	FCT_FSTOP_012   GVModeFStop = 2
+	FCT_FSTOP_013   GVModeFStop = 3
+	FCT_FSTOP_014   GVModeFStop = 5
+	FCT_FSTOP_015   GVModeFStop = 6
+	FCT_FSTOP_017   GVModeFStop = 8
+	FCT_FSTOP_018   GVModeFStop = 9
+	FCT_FSTOP_020   GVModeFStop = 11
+	FCT_FSTOP_022   GVModeFStop = 12
+	FCT_FSTOP_024   GVModeFStop = 43
+	FCT_FSTOP_026   GVModeFStop = 13
+	FCT_FSTOP_028   GVModeFStop = 14
+	FCT_FSTOP_031   GVModeFStop = 15
+	FCT_FSTOP_034   GVModeFStop = 44
+	FCT_FSTOP_037   GVModeFStop = 16
+	FCT_FSTOP_040   GVModeFStop = 17
+	FCT_FSTOP_044   GVModeFStop = 18
+	FCT_FSTOP_048   GVModeFStop = 45
+	FCT_FSTOP_052   GVModeFStop = 19
+	FCT_FSTOP_056   GVModeFStop = 20
+	FCT_FSTOP_062   GVModeFStop = 21
+	FCT_FSTOP_067   GVModeFStop = 46
+	FCT_FSTOP_073   GVModeFStop = 22
+	FCT_FSTOP_080   GVModeFStop = 23
+	FCT_FSTOP_087   GVModeFStop = 24
+	FCT_FSTOP_095   GVModeFStop = 47
+	FCT_FSTOP_100   GVModeFStop = 25
+	FCT_FSTOP_110   GVModeFStop = 26
+	FCT_FSTOP_120   GVModeFStop = 27
+	FCT_FSTOP_130   GVModeFStop = 48
+	FCT_FSTOP_150   GVModeFStop = 28
+	FCT_FSTOP_160   GVModeFStop = 29
+	FCT_FSTOP_170   GVModeFStop = 49
+	FCT_FSTOP_190   GVModeFStop = 50
+	FCT_FSTOP_210   GVModeFStop = 30
+	FCT_FSTOP_220   GVModeFStop = 51
+	FCT_FSTOP_250   GVModeFStop = 31
+	FCT_FSTOP_270   GVModeFStop = 52
+	FCT_FSTOP_290   GVModeFStop = 53
+	FCT_FSTOP_320   GVModeFStop = 32
+	FCT_FSTOP_350   GVModeFStop = 33
+	FCT_FSTOP_CLOSE GVModeFStop = 34
+	FCT_FSTOP_380   GVModeFStop = 36
+	FCT_FSTOP_420   GVModeFStop = 37
+	FCT_FSTOP_450   GVModeFStop = 38
+	FCT_FSTOP_490   GVModeFStop = 39
+	FCT_FSTOP_530   GVModeFStop = 40
+	FCT_FSTOP_590   GVModeFStop = 41
+	FCT_FSTOP_640   GVModeFStop = 42
+	FCT_FSTOP_16M   GVModeFStop = 72
+	FCT_FSTOP_22M   GVModeFStop = 73
+	FCT_FSTOP_27M   GVModeFStop = 74
+	FCT_FSTOP_32M   GVModeFStop = 75
+)
+
+type GVModeCallSignal uint8
+
+const (
+	CALLSIG_OFF GVModeCallSignal = 0
+	CALLSIG_ON  GVModeCallSignal = 1
+)
+
+type GVModeColorBar uint8
+
+const (
+	COLORBAR_OFF GVModeColorBar = 0
+	COLORBAR_ON  GVModeColorBar = 1
+)

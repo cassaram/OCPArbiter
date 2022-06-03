@@ -3,6 +3,7 @@ package common
 // Implements an interface for a camera
 
 type CamFeatureSet struct {
+	CamNumber    bool
 	CallSignal   bool
 	ColorBar     bool
 	GainMaster   bool
@@ -48,6 +49,8 @@ type Cam interface {
 	GetFeatureSet() CamFeatureSet
 
 	// System
+	GetCamNumber() int
+	SetCamNumber(int)
 	GetCallSig() int
 	SetCallSig(int)
 	GetColorBar() int
