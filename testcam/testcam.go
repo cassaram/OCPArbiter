@@ -93,6 +93,7 @@ func (c *TestCam) Initialize() {
 	c.gainR = 0
 	c.gainG = 0
 	c.gainB = 0
+	c.gainMaster = 0
 	c.blackR = 0
 	c.blackG = 0
 	c.blackB = 0

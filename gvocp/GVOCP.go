@@ -234,7 +234,7 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 		switch GVCommandParam(params[1]) {
 		case VAR_MGAIN_LEVEL:
 			// Get params
-			gain := int(binary.BigEndian.Uint16([]byte{params[2], params[3]}))
+			gain := int(int16(binary.BigEndian.Uint16([]byte{params[2], params[3]})))
 			// Calculate adjusted value
 			gain = calcAdjustedValue(ocp.cam.GetGainMaster(), gain, 0, 4095)
 			// Force update value
@@ -317,7 +317,7 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 			// Get params
 			flareB := int(int8(params[2]))
 			// Calculate adjusted value
-			flareB = calcAdjustedValue(ocp.cam.GetFlareR(), flareB, 0, 255)
+			flareB = calcAdjustedValue(ocp.cam.GetFlareB(), flareB, 0, 255)
 			// Force update value
 			ocp.cam.SetFlareB(flareB)
 			// Update ocp
@@ -822,7 +822,7 @@ func (ocp *GVOCP) updateMatrixBG(d_id byte, group byte, value int) {
 
 func (ocp *GVOCP) updateMBlackL(d_id byte, group byte, value int) {
 	// Separate int into 12-bit byte slice
-	txParams := []byte{}
+	txParams := make([]byte, 2)
 	binary.BigEndian.PutUint16(txParams, uint16(value))
 	txParams[0] &= 0x0F
 
@@ -841,7 +841,7 @@ func (ocp *GVOCP) updateMBlackL(d_id byte, group byte, value int) {
 
 func (ocp *GVOCP) updateIrisL(d_id byte, group byte, value int) {
 	// Separate int into 12-bit byte slice
-	txParams := []byte{}
+	txParams := make([]byte, 2)
 	binary.BigEndian.PutUint16(txParams, uint16(value))
 	txParams[0] &= 0x0F
 
@@ -860,7 +860,7 @@ func (ocp *GVOCP) updateIrisL(d_id byte, group byte, value int) {
 
 func (ocp *GVOCP) updateMGainL(d_id byte, group byte, value int) {
 	// Separate int into 12-bit byte slice
-	txParams := []byte{}
+	txParams := make([]byte, 2)
 	binary.BigEndian.PutUint16(txParams, uint16(value))
 	txParams[0] &= 0x0F
 
