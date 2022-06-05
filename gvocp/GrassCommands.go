@@ -358,6 +358,13 @@ const (
 	FCT_FSTOP_32M   GVModeFStop = 75
 )
 
+type GVModeIrisAuto uint8
+
+const (
+	AUTOIRIS_OFF GVModeIrisAuto = 0
+	AUTOIRIS_ON  GVModeIrisAuto = 1
+)
+
 type GVModeCallSignal uint8
 
 const (

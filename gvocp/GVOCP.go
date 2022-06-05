@@ -30,7 +30,6 @@ func (ocp *GVOCP) InitOCP(camera common.Cam, port string) {
 
 	ocp.ocpInitialized = false
 
-	fmt.Println("Loop called")
 	for {
 		ocp.connection.HandleData()
 	}
@@ -205,7 +204,7 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				// Force update value
 				ocp.cam.SetBlackMaster(black)
 				// Update ocp
-				ocp.updateMBlackL(s_id, group, ocp.cam.GetBlackMaster())
+				ocp.updateMBlackL(s_id, group, ocp.cam.GetBlackMaster(), true)
 			}
 
 		// Protocol message updates
@@ -322,6 +321,172 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 			ocp.cam.SetFlareB(flareB)
 			// Update ocp
 			ocp.updateFlareB(s_id, group, ocp.cam.GetFlareB())
+		case NOTCH_LEVEL:
+		case SOFT_CONT_LEVEL:
+		case SKIN_CONT_LEVEL:
+		case SKIN1_WIDTH_RED:
+		case SKIN1_WIDTH_BLUE:
+		case SKIN1_COLOR_RED:
+		case SKIN1_COLOR_BLUE:
+		case SKIN2_WIDTH_RED:
+		case SKIN2_WIDTH_BLUE:
+		case SKIN2_COLOR_RED:
+		case SKIN2_COLOR_BLUE:
+		case MATRIX_RG:
+			if ocp.camFeatures.MatrixRG {
+				// Get params
+				value := int(int8(params[2]))
+				// Calculate adjusted value
+				value = calcAdjustedValue(ocp.cam.GetMatrixRG(), value, 0, 255)
+				// Force update value
+				ocp.cam.SetMatrixRG(value)
+				// Update ocp
+				ocp.updateMatrixRG(s_id, group, ocp.cam.GetMatrixRG())
+			}
+		case MATRIX_RB:
+			if ocp.camFeatures.MatrixRB {
+				// Get params
+				value := int(int8(params[2]))
+				// Calculate adjusted value
+				value = calcAdjustedValue(ocp.cam.GetMatrixRB(), value, 0, 255)
+				// Force update value
+				ocp.cam.SetMatrixRB(value)
+				// Update ocp
+				ocp.updateMatrixRB(s_id, group, ocp.cam.GetMatrixRB())
+			}
+		case MATRIX_GR:
+			if ocp.camFeatures.MatrixGR {
+				// Get params
+				value := int(int8(params[2]))
+				// Calculate adjusted value
+				value = calcAdjustedValue(ocp.cam.GetMatrixGR(), value, 0, 255)
+				// Force update value
+				ocp.cam.SetMatrixGR(value)
+				// Update ocp
+				ocp.updateMatrixGR(s_id, group, ocp.cam.GetMatrixGR())
+			}
+		case MATRIX_GB:
+			if ocp.camFeatures.MatrixGB {
+				// Get params
+				value := int(int8(params[2]))
+				// Calculate adjusted value
+				value = calcAdjustedValue(ocp.cam.GetMatrixGB(), value, 0, 255)
+				// Force update value
+				ocp.cam.SetMatrixGB(value)
+				// Update ocp
+				ocp.updateMatrixGB(s_id, group, ocp.cam.GetMatrixGB())
+			}
+		case MATRIX_BR:
+			if ocp.camFeatures.MatrixBR {
+				// Get params
+				value := int(int8(params[2]))
+				// Calculate adjusted value
+				value = calcAdjustedValue(ocp.cam.GetMatrixBR(), value, 0, 255)
+				// Force update value
+				ocp.cam.SetMatrixBR(value)
+				// Update ocp
+				ocp.updateMatrixBR(s_id, group, ocp.cam.GetMatrixBR())
+			}
+		case MATRIX_BG:
+			if ocp.camFeatures.MatrixBG {
+				// Get params
+				value := int(int8(params[2]))
+				// Calculate adjusted value
+				value = calcAdjustedValue(ocp.cam.GetMatrixBG(), value, 0, 255)
+				// Force update value
+				ocp.cam.SetMatrixBG(value)
+				// Update ocp
+				ocp.updateMatrixBG(s_id, group, ocp.cam.GetMatrixBG())
+			}
+		case MBLACK_12BIT_LEVEL:
+			if ocp.camFeatures.BlackMaster {
+				// Get params
+				value := int(int16(binary.LittleEndian.Uint16(params[2:4])))
+				// Calculate adjusted value
+				value = calcAdjustedValue(ocp.cam.GetBlackMaster(), value, 0, 4095)
+				// Force update value
+				ocp.cam.SetBlackMaster(value)
+				// Update ocp
+				ocp.updateMBlackL(s_id, group, ocp.cam.GetBlackMaster(), false)
+			}
+		case MASTER_BLACK_LEVEL:
+			if ocp.camFeatures.BlackMaster {
+				// Get params (and convert to 12-bit resolution / 0-4095 scale)
+				value := int(int8(params[2])) * 16
+				// Calculate adjusted value
+				value = calcAdjustedValue(ocp.cam.GetBlackMaster(), value, 0, 4095)
+				// Force update value
+				ocp.cam.SetBlackMaster(value)
+				// Update ocp
+				ocp.updateMBlackL(s_id, group, ocp.cam.GetBlackMaster(), false)
+			}
+		case KNEE_LEVEL:
+		case IRIS_LEVEL:
+		case IRIS_12BIT_LEVEL:
+			if ocp.camFeatures.Iris {
+				// Get params
+				value := int(int16(binary.LittleEndian.Uint16(params[2:4])))
+				// Calculate adjusted value
+				value = calcAdjustedValue(ocp.cam.GetIris(), value, 0, 4095)
+				// Force update value
+				ocp.cam.SetIris(value)
+				// Update ocp
+				ocp.updateIrisL(s_id, group, ocp.cam.GetIris(), true)
+				ocp.updateFStop(s_id, group, ocp.cam.GetFStop())
+			}
+		}
+	case ABS_SWITCH_CMD:
+		switch GVSwitchParams(params[1]) {
+		case NOTCH:
+		case STANDARD:
+		case REM_AUDIO_LEVEL:
+		case SOFT_CONTOUR:
+		case OCP_LOCK:
+		case OCP_CONNECTED:
+		case SKIN_VIEW:
+		case AUTOSKIN:
+		case MCP_AVAILABLE:
+		case ASPECT_RATIO:
+		case SCAN_REVERSE:
+		case LAMP_OFF:
+		case REM_ASPECT_RATIO:
+		case MATRIX_GAMMA:
+		case KNEE_DESAT:
+		case AUTO_IRIS:
+			if ocp.camFeatures.IrisAuto {
+				// Get params
+				value := int(int8(params[2]))
+				// Force update value
+				ocp.cam.SetIrisAuto(value)
+				// Update ocp
+				ocp.updateIrisAuto(s_id, group, GVModeIrisAuto(ocp.cam.GetIrisAuto()))
+			}
+		case CALL_SIG:
+			if ocp.camFeatures.CallSignal {
+				// Get params
+				value := int(int8(params[2]))
+				// Force update value
+				ocp.cam.SetCallSig(value)
+				// Update ocp
+				ocp.updateCallSignal(s_id, group, GVModeCallSignal(ocp.cam.GetCallSig()))
+			}
+		case BLACKSTRETCH_TYPE:
+		case CAMERA_DISABLE:
+		case STANDBY:
+		case VF_STANDBY:
+		case STUDIO_MODE:
+		case SWITCHABLE_VIDEO_TRANSMISSION:
+		case SWITCHABLE_PRIVATE_DATA:
+		case SWITCHABLE_INTERCOM:
+		case COLOUR_BAR:
+			if ocp.camFeatures.ColorBar {
+				// Get params
+				value := int(int8(params[2]))
+				// Force update value
+				ocp.cam.SetColorBar(value)
+				// Update ocp
+				ocp.updateColorBar(s_id, group, GVModeColorBar(ocp.cam.GetColorBar()))
+			}
 		}
 	}
 
@@ -387,7 +552,7 @@ func (ocp *GVOCP) initializeOCP(d_id byte, group byte) {
 		ocp.updateBlackB(d_id, group, ocp.cam.GetBlackB())
 	}
 	if ocp.camFeatures.BlackMaster {
-		ocp.updateMBlackL(d_id, group, ocp.cam.GetBlackMaster())
+		ocp.updateMBlackL(d_id, group, ocp.cam.GetBlackMaster(), false)
 	}
 	if ocp.camFeatures.FlareR {
 		ocp.updateFlareR(d_id, group, ocp.cam.GetFlareR())
@@ -399,7 +564,10 @@ func (ocp *GVOCP) initializeOCP(d_id byte, group byte) {
 		ocp.updateFlareB(d_id, group, ocp.cam.GetFlareB())
 	}
 	if ocp.camFeatures.Iris {
-		ocp.updateIrisL(d_id, group, ocp.cam.GetIris())
+		ocp.updateIrisL(d_id, group, ocp.cam.GetIris(), false)
+	}
+	if ocp.camFeatures.FStop {
+		ocp.updateFStop(d_id, group, ocp.cam.GetFStop())
 	}
 	if ocp.camFeatures.IrisAuto {
 		ocp.connection.SendDataMessage(
@@ -820,42 +988,78 @@ func (ocp *GVOCP) updateMatrixBG(d_id byte, group byte, value int) {
 	)
 }
 
-func (ocp *GVOCP) updateMBlackL(d_id byte, group byte, value int) {
-	// Separate int into 12-bit byte slice
-	txParams := make([]byte, 2)
-	binary.BigEndian.PutUint16(txParams, uint16(value))
-	txParams[0] &= 0x0F
+func (ocp *GVOCP) updateMBlackL(d_id byte, group byte, value int, extended bool) {
+	if extended {
+		// 12-bit
+		// Separate int into 12-bit byte slice
+		txParams := make([]byte, 2)
+		binary.BigEndian.PutUint16(txParams, uint16(value))
+		//txParams[1] &= 0x0F
 
-	ocp.txCount++
-	ocp.connection.SendDataMessage(
-		d_id,
-		group,
-		byte(ABS_VALUE_CMD),
-		[]byte{
-			byte(MBLACK_12BIT_LEVEL),
-			txParams[0],
-			txParams[1],
-		},
-	)
+		ocp.txCount++
+		ocp.connection.SendDataMessage(
+			d_id,
+			group,
+			byte(ABS_VALUE_CMD),
+			[]byte{
+				byte(MBLACK_12BIT_LEVEL),
+				txParams[0],
+				txParams[1],
+			},
+		)
+	} else {
+		// 8-bit
+		// Condense from 12-bit (0-4095) -> (0-255)
+		value = value / 16
+		ocp.txCount++
+		ocp.connection.SendDataMessage(
+			d_id,
+			group,
+			byte(ABS_VALUE_CMD),
+			[]byte{
+				byte(MASTER_BLACK_LEVEL),
+				byte(value),
+			},
+		)
+	}
+
 }
 
-func (ocp *GVOCP) updateIrisL(d_id byte, group byte, value int) {
-	// Separate int into 12-bit byte slice
-	txParams := make([]byte, 2)
-	binary.BigEndian.PutUint16(txParams, uint16(value))
-	txParams[0] &= 0x0F
+func (ocp *GVOCP) updateIrisL(d_id byte, group byte, value int, extended bool) {
+	if extended {
+		// 12-bit Level
 
-	ocp.txCount++
-	ocp.connection.SendDataMessage(
-		d_id,
-		group,
-		byte(ABS_VALUE_CMD),
-		[]byte{
-			byte(IRIS_12BIT_LEVEL),
-			txParams[0],
-			txParams[1],
-		},
-	)
+		// Separate int into 12-bit byte slice
+		txParams := make([]byte, 2)
+		binary.BigEndian.PutUint16(txParams, uint16(value))
+		txParams[0] &= 0x0F
+
+		ocp.txCount++
+		ocp.connection.SendDataMessage(
+			d_id,
+			group,
+			byte(ABS_VALUE_CMD),
+			[]byte{
+				byte(IRIS_12BIT_LEVEL),
+				txParams[0],
+				txParams[1],
+			},
+		)
+	} else {
+		// 8-bit level
+		// Condense from 12-bit (0-4095) -> (0-255)
+		value = value / 16
+		ocp.txCount++
+		ocp.connection.SendDataMessage(
+			d_id,
+			group,
+			byte(ABS_VALUE_CMD),
+			[]byte{
+				byte(IRIS_LEVEL),
+				byte(value),
+			},
+		)
+	}
 }
 
 func (ocp *GVOCP) updateMGainL(d_id byte, group byte, value int) {
@@ -890,6 +1094,21 @@ func (ocp *GVOCP) updateCamNumber(d_id byte, group byte, value int) {
 	)
 }
 
+// ----- Switch Commands -----
+
+func (ocp *GVOCP) updateIrisAuto(d_id byte, group byte, value GVModeIrisAuto) {
+	ocp.txCount++
+	ocp.connection.SendDataMessage(
+		d_id,
+		group,
+		byte(SWITCH_CMD),
+		[]byte{
+			byte(AUTO_IRIS),
+			byte(value),
+		},
+	)
+}
+
 func (ocp *GVOCP) updateCallSignal(d_id byte, group byte, value GVModeCallSignal) {
 	ocp.txCount++
 	ocp.connection.SendDataMessage(
@@ -912,6 +1131,23 @@ func (ocp *GVOCP) updateColorBar(d_id byte, group byte, value GVModeColorBar) {
 		[]byte{
 			byte(COLOUR_BAR),
 			byte(value),
+		},
+	)
+}
+
+// ----- Mode Commands -----
+
+func (ocp *GVOCP) updateFStop(d_id byte, group byte, value float32) {
+	enum := fstopToEnum(value)
+
+	ocp.txCount++
+	ocp.connection.SendDataMessage(
+		d_id,
+		group,
+		byte(MODE_CMD),
+		[]byte{
+			byte(FSTOP_SELECT),
+			byte(enum),
 		},
 	)
 }

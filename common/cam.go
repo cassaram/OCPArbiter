@@ -25,6 +25,7 @@ type CamFeatureSet struct {
 	MatrixGamma  bool
 	BlackMaster  bool
 	Iris         bool
+	FStop        bool
 	IrisAuto     bool
 	KneeLvl      bool
 	KneeDesatLvl bool
@@ -105,6 +106,8 @@ type Cam interface {
 	// Iris
 	GetIris() int
 	SetIris(int)
+	GetFStop() float32
+	SetFStop(float32)
 	GetIrisAuto() int
 	SetIrisAuto(int)
 

@@ -28,6 +28,7 @@ type TestCam struct {
 	matrixBG     int
 	matrixGamma  int
 	iris         int
+	fstop        float32
 	irisAuto     bool
 	kneeLvl      int
 	kneeDesatLvl int
@@ -70,6 +71,7 @@ func (c *TestCam) Initialize() {
 	c.featureSet.MatrixGamma = true
 	c.featureSet.BlackMaster = true
 	c.featureSet.Iris = true
+	c.featureSet.FStop = true
 	c.featureSet.IrisAuto = true
 	c.featureSet.KneeLvl = true
 	c.featureSet.KneeDesatLvl = true
@@ -102,6 +104,7 @@ func (c *TestCam) Initialize() {
 	c.flareG = 0
 	c.flareB = 0
 	c.iris = 0
+	c.fstop = 1.0
 	c.irisAuto = false
 }
 
@@ -306,6 +309,19 @@ func (c *TestCam) GetIris() int {
 
 func (c *TestCam) SetIris(iris int) {
 	c.iris = iris
+}
+
+func (c *TestCam) GetFStop() float32 {
+	// Calculate f-stop number from iris 0-4055 value
+	// Interprets as a f2.8 - f22 lens because limits
+	pct := c.iris * 100 / 4095
+	rng := (220 - 28)
+	return float32(pct*rng)/1000 + 2.8
+
+}
+
+func (c *TestCam) SetFStop(fstop float32) {
+	c.fstop = fstop
 }
 
 func (c *TestCam) GetIrisAuto() int {
