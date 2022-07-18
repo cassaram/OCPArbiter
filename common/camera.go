@@ -40,11 +40,12 @@ type CamFeatureSet struct {
 	GammaR       bool
 	GammaG       bool
 	GammaB       bool
+	WBMode       bool
 	WBR          bool
 	WBB          bool
 }
 
-type Cam interface {
+type Camera interface {
 	// Initialization
 	Initialize()
 	GetFeatureSet() CamFeatureSet
@@ -142,6 +143,8 @@ type Cam interface {
 	SetGammaB(int)
 
 	// White Balance
+	GetWBMode() int
+	SetWBMode(int)
 	GetWBR() int
 	SetWBR(int)
 	GetWBB() int
