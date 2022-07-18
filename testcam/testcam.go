@@ -43,6 +43,7 @@ type TestCam struct {
 	gammaR       int
 	gammaG       int
 	gammaB       int
+	wbMode       int
 	wbR          int
 	wbB          int
 }
@@ -86,6 +87,7 @@ func (c *TestCam) Initialize() {
 	c.featureSet.GammaR = true
 	c.featureSet.GammaG = true
 	c.featureSet.GammaB = true
+	c.featureSet.WBMode = true
 	c.featureSet.WBR = true
 	c.featureSet.WBB = true
 
@@ -106,6 +108,10 @@ func (c *TestCam) Initialize() {
 	c.iris = 0
 	c.fstop = 1.0
 	c.irisAuto = false
+	c.wbMode = 12 // Variable WB
+	c.wbR = 0
+	c.wbB = 0
+
 }
 
 func (c *TestCam) GetFeatureSet() common.CamFeatureSet {
@@ -447,6 +453,14 @@ func (c *TestCam) SetGammaB(gammaB int) {
 }
 
 // White Balance
+func (c *TestCam) GetWBMode() int {
+	return c.wbMode
+}
+
+func (c *TestCam) SetWBMode(value int) {
+	c.wbMode = value
+}
+
 func (c *TestCam) GetWBR() int {
 	return c.wbR
 }

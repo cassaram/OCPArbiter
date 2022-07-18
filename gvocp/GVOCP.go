@@ -13,11 +13,11 @@ type GVOCP struct {
 	rxCount        uint16
 	txCount        uint16
 	ocpInitialized bool
-	cam            common.Cam
+	cam            common.Camera
 	camFeatures    common.CamFeatureSet
 }
 
-func (ocp *GVOCP) InitOCP(camera common.Cam, port string) {
+func (ocp *GVOCP) InitOCP(camera common.Camera, port string) {
 	ocp.cam = camera
 	ocp.camFeatures = ocp.cam.GetFeatureSet()
 
@@ -50,7 +50,7 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 
 	switch GVCommand(command) {
 	case ABS_VALUE_CMD:
-		switch GVCommandParam(params[1]) {
+		switch GVValueCommand(params[1]) {
 		case GAIN_RED_LEVEL:
 			if ocp.camFeatures.GainR {
 				// Get params
@@ -230,7 +230,7 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 
 	// Value adjustment commands
 	case VALUE_CMD:
-		switch GVCommandParam(params[1]) {
+		switch GVValueCommand(params[1]) {
 		case VAR_MGAIN_LEVEL:
 			// Get params
 			gain := int(int16(binary.BigEndian.Uint16([]byte{params[2], params[3]})))
@@ -570,15 +570,7 @@ func (ocp *GVOCP) initializeOCP(d_id byte, group byte) {
 		ocp.updateFStop(d_id, group, ocp.cam.GetFStop())
 	}
 	if ocp.camFeatures.IrisAuto {
-		ocp.connection.SendDataMessage(
-			d_id,
-			group,
-			byte(SWITCH_CMD),
-			[]byte{
-				byte(AUTO_IRIS),
-				byte(ocp.cam.GetIrisAuto()),
-			},
-		)
+		ocp.updateIrisAuto(d_id, group, GVModeIrisAuto(ocp.cam.GetIrisAuto()))
 	}
 	if ocp.camFeatures.GammaLevel {
 		ocp.connection.SendDataMessage(
@@ -623,6 +615,9 @@ func (ocp *GVOCP) initializeOCP(d_id byte, group byte) {
 				byte(ocp.cam.GetGammaB()),
 			},
 		)
+	}
+	if ocp.camFeatures.WBMode {
+		ocp.updateColorTemp(d_id, group, ocp.cam.GetWBMode())
 	}
 	if ocp.camFeatures.WBR {
 		ocp.connection.SendDataMessage(
@@ -1025,6 +1020,19 @@ func (ocp *GVOCP) updateMBlackL(d_id byte, group byte, value int, extended bool)
 
 }
 
+func (ocp *GVOCP) updateKneeLevel(d_id byte, group byte, value int) {
+	ocp.txCount++
+	ocp.connection.SendDataMessage(
+		d_id,
+		group,
+		byte(ABS_VALUE_CMD),
+		[]byte{
+			byte(KNEE_LEVEL),
+			byte(value),
+		},
+	)
+}
+
 func (ocp *GVOCP) updateIrisL(d_id byte, group byte, value int, extended bool) {
 	if extended {
 		// 12-bit Level
@@ -1062,6 +1070,19 @@ func (ocp *GVOCP) updateIrisL(d_id byte, group byte, value int, extended bool) {
 	}
 }
 
+func (ocp *GVOCP) updateKneeDesatLevel(d_id byte, group byte, value int) {
+	ocp.txCount++
+	ocp.connection.SendDataMessage(
+		d_id,
+		group,
+		byte(ABS_VALUE_CMD),
+		[]byte{
+			byte(KNEE_DESAT_LEVEL),
+			byte(value),
+		},
+	)
+}
+
 func (ocp *GVOCP) updateMGainL(d_id byte, group byte, value int) {
 	// Separate int into 12-bit byte slice
 	txParams := make([]byte, 2)
@@ -1077,6 +1098,19 @@ func (ocp *GVOCP) updateMGainL(d_id byte, group byte, value int) {
 			byte(VAR_MGAIN_LEVEL),
 			txParams[0],
 			txParams[1],
+		},
+	)
+}
+
+func (ocp *GVOCP) updateColorTempLevel(d_id byte, group byte, value int) {
+	ocp.txCount++
+	ocp.connection.SendDataMessage(
+		d_id,
+		group,
+		byte(ABS_VALUE_CMD),
+		[]byte{
+			byte(VAR_CTEMP_LEVEL),
+			byte(value),
 		},
 	)
 }
@@ -1148,6 +1182,19 @@ func (ocp *GVOCP) updateFStop(d_id byte, group byte, value float32) {
 		[]byte{
 			byte(FSTOP_SELECT),
 			byte(enum),
+		},
+	)
+}
+
+func (ocp *GVOCP) updateColorTemp(d_id byte, group byte, value int) {
+	ocp.txCount++
+	ocp.connection.SendDataMessage(
+		d_id,
+		group,
+		byte(MODE_CMD),
+		[]byte{
+			byte(COLOUR_TEMP_SELECT),
+			byte(value),
 		},
 	)
 }

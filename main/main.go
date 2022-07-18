@@ -9,9 +9,13 @@ import (
 func main() {
 	var ocp gvocp.GVOCP
 	var testCam testcam.TestCam
-	cam := common.Cam(&testCam)
+	cam := common.Camera(&testCam)
 
 	cam.Initialize()
 	cam.SetCamNumber(1)
 	ocp.InitOCP(cam, "COM4")
+}
+
+func getControllers() {
+
 }
