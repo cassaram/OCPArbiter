@@ -1,5 +1,7 @@
 package gvocp
 
+import "github.com/cassaram/ocparbiter/common"
+
 // Library of helper functions for the grass command definitions
 
 // Struct to hold data for calculating enum from float for fstops
@@ -82,5 +84,94 @@ func recursiveFStopToEnum(enums []fstopEnhancedEnum, value float32) GVModeFStop 
 		return recursiveFStopToEnum(enums[left:mid], value)
 	} else {
 		return recursiveFStopToEnum(enums[mid:right], value)
+	}
+}
+
+func commonFunctionToGrassFunction(function common.CameraFunction) (GVCommand, int) {
+	// Returns all commands which are straightforward [{GVCMD}, {GVFUNC}, {VAL (0-255)}] format
+	// Used to simplify other functions
+	/* Current edgecases:
+	 * - MBLACK_12BIT_LEVEL
+	 * - MASTER_BLACK_LEVEL
+	 * - IRIS_LEVEL
+	 * - IRIS_12BIT_LEVEL
+	 * - FSTOP_SELECT
+	 */
+
+	switch function {
+	case common.CameraNumber:
+		return ABS_VALUE_CMD, int(BS_CAMERA_NUMBER)
+	case common.CallSignal:
+		return ABS_VALUE_CMD, int(CALL_SIG)
+	case common.ColorBar:
+		return ABS_VALUE_CMD, int(COLOUR_BAR)
+	case common.GainRed:
+		return ABS_VALUE_CMD, int(GAIN_RED_LEVEL)
+	case common.GainGreen:
+		return ABS_VALUE_CMD, int(GAIN_GREEN_LEVEL)
+	case common.GainBlue:
+		return ABS_VALUE_CMD, int(GAIN_BLUE_LEVEL)
+	case common.BlackRed:
+		return ABS_VALUE_CMD, int(BLACK_RED_LEVEL)
+	case common.BlackGreen:
+		return ABS_VALUE_CMD, int(BLACK_GREEN_LEVEL)
+	case common.BlackBlue:
+		return ABS_VALUE_CMD, int(BLACK_BLUE_LEVEL)
+	case common.FlareRed:
+		return ABS_VALUE_CMD, int(FLARE_RED_LEVEL)
+	case common.FlareGreen:
+		return ABS_VALUE_CMD, int(FLARE_GREEN_LEVEL)
+	case common.FlareBlue:
+		return ABS_VALUE_CMD, int(FLARE_BLUE_LEVEL)
+	case common.MatrixRedGreen:
+		return ABS_VALUE_CMD, int(MATRIX_RG)
+	case common.MatrixRedBlue:
+		return ABS_VALUE_CMD, int(MATRIX_RB)
+	case common.MatrixGreenRed:
+		return ABS_VALUE_CMD, int(MATRIX_GR)
+	case common.MatrixGreenBlue:
+		return ABS_VALUE_CMD, int(MATRIX_GB)
+	case common.MatrixBlueRed:
+		return ABS_VALUE_CMD, int(MATRIX_BR)
+	case common.MatrixBlueGreen:
+		return ABS_VALUE_CMD, int(MATRIX_BG)
+	case common.MatrixGamma:
+		return ABS_VALUE_CMD, int(MATRIX_GAMMA)
+	case common.IrisAuto:
+		return ABS_SWITCH_CMD, int(AUTO_IRIS)
+	case common.IrisExtended:
+		return ABS_SWITCH_CMD, int(EXTENDED_IRIS)
+	case common.KneeLevel:
+		return ABS_VALUE_CMD, int(KNEE_LEVEL)
+	case common.KneeDesaturationLevel:
+		return ABS_VALUE_CMD, int(KNEE_DESAT_LEVEL)
+	case common.KneeSlope:
+		return ABS_VALUE_CMD, int(KNEE_SLOPE_M)
+	case common.KneeSlopeRed:
+		return ABS_VALUE_CMD, int(KNEE_SLOPE_R)
+	case common.KneeSlopeBlue:
+		return ABS_VALUE_CMD, int(KNEE_SLOPE_B)
+	case common.KneeAttack:
+		return ABS_VALUE_CMD, int(KNEE_ATTACK_M)
+	case common.KneeAttackRed:
+		return ABS_VALUE_CMD, int(KNEE_ATTACK_R)
+	case common.KneeAttackBlue:
+		return ABS_VALUE_CMD, int(KNEE_ATTACK_B)
+	case common.KneePoint:
+		return ABS_VALUE_CMD, int(KNEE_POINT_LEVEL)
+	case common.GammaMaster:
+		return ABS_VALUE_CMD, int(MASTER_GAMMA_LEVEL)
+	case common.GammaRed:
+		return ABS_VALUE_CMD, int(GAMMA_RED_LEVEL)
+	case common.GammaGreen:
+		return ABS_VALUE_CMD, int(GAMMA_GREEN_LEVEL)
+	case common.GammaBlue:
+		return ABS_VALUE_CMD, int(GAMMA_BLUE_LEVEL)
+	case common.WhiteBalanceRed:
+		return ABS_VALUE_CMD, int(WH_BAL_RED_LEVEL)
+	case common.WhiteBalanceBlue:
+		return ABS_VALUE_CMD, int(WH_BAL_BLUE_LEVEL)
+	default:
+		return ABS_VALUE_CMD, int(-1)
 	}
 }

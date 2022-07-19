@@ -12,7 +12,12 @@ func main() {
 	cam := common.Camera(&testCam)
 
 	cam.Initialize()
-	cam.SetCamNumber(1)
+	cam.UpdateValue(common.CameraCommand{
+		Function:   common.CameraNumber,
+		Value:      1,
+		Adjustment: common.Absolute,
+	})
+
 	ocp.InitOCP(cam, "COM4")
 }
 

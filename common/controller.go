@@ -5,4 +5,6 @@ type Controller interface {
 
 	GetConnectedCamera() Camera
 	SetConnectedCamera(Camera)
+
+	UpdateValue(ControllerCommand)
 }
