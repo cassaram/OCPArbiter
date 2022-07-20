@@ -10,6 +10,8 @@ import (
 
 type GVOCP struct {
 	connection       pci.PCI
+	ocp_pci_id       uint8
+	ocp_grp_id       uint8
 	rxCount          uint16
 	txCount          uint16
 	ocpInitialized   bool
@@ -52,8 +54,8 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 		}
 
 		ocp.scheduleDataMessage(
-			byte(pkt.Metadata["pci_d_id"]),
-			byte(pkt.Metadata["pci_group"]),
+			byte(ocp.ocp_pci_id),
+			byte(ocp.ocp_grp_id),
 			byte(ABS_VALUE_CMD),
 			params,
 		)
@@ -73,8 +75,8 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 		}
 
 		ocp.scheduleDataMessage(
-			byte(pkt.Metadata["pci_d_id"]),
-			byte(pkt.Metadata["pci_group"]),
+			byte(ocp.ocp_pci_id),
+			byte(ocp.ocp_grp_id),
 			byte(ABS_VALUE_CMD),
 			params,
 		)
@@ -88,8 +90,8 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 		params = append(params, evalue...)
 
 		ocp.scheduleDataMessage(
-			byte(pkt.Metadata["pci_d_id"]),
-			byte(pkt.Metadata["pci_group"]),
+			byte(ocp.ocp_pci_id),
+			byte(ocp.ocp_grp_id),
 			byte(ABS_VALUE_CMD),
 			params,
 		)
@@ -101,8 +103,8 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 		enum := fstopToEnum(value)
 
 		ocp.scheduleDataMessage(
-			byte(pkt.Metadata["pci_d_id"]),
-			byte(pkt.Metadata["pci_group"]),
+			byte(ocp.ocp_pci_id),
+			byte(ocp.ocp_grp_id),
 			byte(MODE_CMD),
 			[]byte{
 				byte(FSTOP_SELECT),
@@ -115,8 +117,8 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 		// Utilize utility function to get data
 		mcmd, cmd := commonFunctionToGrassFunction(pkt.Function)
 		ocp.scheduleDataMessage(
-			byte(pkt.Metadata["pci_d_id"]),
-			byte(pkt.Metadata["pci_group"]),
+			byte(ocp.ocp_pci_id),
+			byte(ocp.ocp_grp_id),
 			byte(mcmd),
 			[]byte{
 				byte(cmd),
@@ -157,10 +159,14 @@ func (ocp *GVOCP) scheduleDataMessage(d_id byte, group byte, command byte, param
 
 // Function to initialize OCP with all values from the camera
 func (ocp *GVOCP) initializeOCPValues(s_id byte, group byte) {
+	// Set group and id
+	ocp.ocp_pci_id = uint8(s_id)
+	ocp.ocp_grp_id = uint8(group)
+
+	// Get and queue values
 	vals := ocp.cam.RequestAllValues()
 
 	for _, val := range vals {
-		val.Metadata = makeMetadataMap(s_id, group)
 		ocp.UpdateValue(val)
 	}
 
@@ -186,7 +192,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.GainRed,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case GAIN_GREEN_LEVEL:
 			// Get params
@@ -196,7 +201,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.GainGreen,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case GAIN_BLUE_LEVEL:
 			// Get params
@@ -206,7 +210,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.GainBlue,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case BLACK_RED_LEVEL:
 			// Get params
@@ -216,7 +219,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.BlackRed,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case BLACK_GREEN_LEVEL:
 			// Get params
@@ -226,7 +228,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.BlackGreen,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case BLACK_BLUE_LEVEL:
 			// Get params
@@ -236,7 +237,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.BlackBlue,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case FLARE_RED_LEVEL:
 			// Get params
@@ -246,7 +246,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.FlareRed,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case FLARE_GREEN_LEVEL:
 			// Get params
@@ -256,7 +255,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.FlareGreen,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case FLARE_BLUE_LEVEL:
 			// Get params
@@ -266,7 +264,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.FlareBlue,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case NOTCH_LEVEL:
 		case SOFT_CONT_LEVEL:
@@ -287,7 +284,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixRedGreen,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MATRIX_RB:
 			// Get params
@@ -297,7 +293,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixRedBlue,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MATRIX_GR:
 			// Get params
@@ -307,7 +302,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixGreenRed,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MATRIX_GB:
 			// Get params
@@ -317,7 +311,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixGreenBlue,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MATRIX_BR:
 			// Get params
@@ -327,7 +320,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixBlueRed,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MATRIX_BG:
 			// Get params
@@ -337,7 +329,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixBlueGreen,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MBLACK_12BIT_LEVEL:
 			// Get params
@@ -347,7 +338,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.BlackMaster,
 				Value:      value,
 				Adjustment: common.Absolute,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 
 		// Protocol message updates
@@ -382,7 +372,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.GainMaster,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case GAIN_RED_LEVEL:
 			// Get params
@@ -392,7 +381,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.GainRed,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case GAIN_GREEN_LEVEL:
 			// Get params
@@ -402,7 +390,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.GainGreen,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case GAIN_BLUE_LEVEL:
 			// Get params
@@ -412,7 +399,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.GainBlue,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case BLACK_RED_LEVEL:
 			// Get params
@@ -422,7 +408,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.BlackRed,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case BLACK_GREEN_LEVEL:
 			// Get params
@@ -432,7 +417,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.BlackGreen,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case BLACK_BLUE_LEVEL:
 			// Get params
@@ -442,7 +426,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.BlackBlue,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case FLARE_RED_LEVEL:
 			// Get params
@@ -452,7 +435,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.FlareRed,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case FLARE_GREEN_LEVEL:
 			// Get params
@@ -462,7 +444,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.FlareGreen,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case FLARE_BLUE_LEVEL:
 			// Get params
@@ -472,7 +453,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.FlareBlue,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case NOTCH_LEVEL:
 		case SOFT_CONT_LEVEL:
@@ -493,7 +473,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixRedGreen,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MATRIX_RB:
 			// Get params
@@ -503,7 +482,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixRedBlue,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MATRIX_GR:
 			// Get params
@@ -513,7 +491,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixGreenRed,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MATRIX_GB:
 			// Get params
@@ -523,7 +500,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixGreenBlue,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MATRIX_BR:
 			// Get params
@@ -533,7 +509,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixBlueRed,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MATRIX_BG:
 			// Get params
@@ -543,7 +518,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.MatrixBlueGreen,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MBLACK_12BIT_LEVEL:
 			value := int(int16(binary.LittleEndian.Uint16(params[2:4])))
@@ -552,7 +526,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.BlackMaster,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case MASTER_BLACK_LEVEL:
 			// Get params (and convert to 12-bit resolution / 0-4095 scale)
@@ -562,7 +535,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.BlackMaster,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case KNEE_LEVEL:
 			// Get params
@@ -572,7 +544,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.KneeLevel,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case IRIS_LEVEL:
 			// Get params (and convert to 12-bit resolution / 0-4095 scale)
@@ -582,7 +553,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.Iris,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case IRIS_12BIT_LEVEL:
 			// Get params
@@ -592,7 +562,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.Iris,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		}
 	case ABS_SWITCH_CMD:
@@ -620,7 +589,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.IrisAuto,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case CALL_SIG:
 			// Get params
@@ -630,7 +598,6 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.CallSignal,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		case BLACKSTRETCH_TYPE:
 		case CAMERA_DISABLE:
@@ -648,20 +615,10 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Function:   common.ColorBar,
 				Value:      value,
 				Adjustment: common.Relative,
-				Metadata:   makeMetadataMap(s_id, group),
 			})
 		}
 	}
 
-}
-
-func makeMetadataMap(d_id byte, group byte) map[string]int {
-	m := make(map[string]int)
-
-	m["pci_d_id"] = int(uint8(d_id))
-	m["pci_group"] = int(uint8(group))
-
-	return m
 }
 
 func boolToInt(b bool) int {

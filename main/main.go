@@ -19,6 +19,11 @@ func main() {
 	})
 
 	ocp.InitOCP(cam, "COM4")
+
+	// Dead loop
+	for {
+
+	}
 }
 
 func getControllers() {
