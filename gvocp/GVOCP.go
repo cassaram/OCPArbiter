@@ -28,10 +28,10 @@ func (ocp *GVOCP) Initialize() {
 func (ocp *GVOCP) setupSettings() {
 	ocp.settings = []settings.Setting{
 		{
-			ParamType: settings.String,
+			ParamType:      settings.String,
 			DescriptorType: settings.String,
-			ParamID: "",
-		}
+			ParamID:        "",
+		},
 	}
 }
 

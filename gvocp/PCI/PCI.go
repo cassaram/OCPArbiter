@@ -149,6 +149,7 @@ func (p *PCI) HandleData() {
 	// Check for packets in receive buffer
 	headerIndx := 0
 	for i, item := range p.rxBuffer {
+		fmt.Println("Buffer:", p.rxBuffer)
 		// Check if header
 		if item&0x80 != 0 {
 			headerIndx = i
@@ -171,6 +172,8 @@ func (p *PCI) HandleData() {
 			}
 			// Announce that packet arrived
 			p.packetArrived(pkt)
+			// Reset loop since we messed with the buffer
+			break
 		}
 
 	}
