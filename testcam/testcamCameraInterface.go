@@ -27,6 +27,7 @@ type testCamCameraInterface struct {
 	iris         int
 	fstop        float32
 	irisAuto     bool
+	IrisExtended bool
 	kneeLvl      int
 	kneeDesatLvl int
 	kneeSlope    int
@@ -268,17 +269,18 @@ func (c *testCamCameraInterface) SetIris(iris int) {
 	c.iris = iris
 }
 
-func (c *testCamCameraInterface) GetFStop() float32 {
+func (c *testCamCameraInterface) GetFStop() int {
 	// Calculate f-stop number from iris 0-4055 value
 	// Interprets as a f2.8 - f22 lens because limits
 	pct := c.iris * 100 / 4095
 	rng := (220 - 28)
-	return float32(pct*rng)/1000 + 2.8
+	flt := float32(pct*rng)/1000 + 2.8
+	return int(flt * 100)
 
 }
 
-func (c *testCamCameraInterface) SetFStop(fstop float32) {
-	c.fstop = fstop
+func (c *testCamCameraInterface) SetFStop(fstop int) {
+	c.fstop = float32(fstop / 100)
 }
 
 func (c *testCamCameraInterface) GetIrisAuto() int {
@@ -294,6 +296,22 @@ func (c *testCamCameraInterface) SetIrisAuto(auto int) {
 		c.irisAuto = false
 	} else {
 		c.irisAuto = true
+	}
+}
+
+func (c *testCamCameraInterface) GetIrisExtended() int {
+	if c.IrisExtended {
+		return 1
+	} else {
+		return 0
+	}
+}
+
+func (c *testCamCameraInterface) SetIrisExtended(extd int) {
+	if extd == 0 {
+		c.IrisExtended = false
+	} else {
+		c.IrisExtended = true
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/cassaram/ocparbiter/common"
+	"github.com/cassaram/ocparbiter/common/settings"
 	pci "github.com/cassaram/ocparbiter/gvocp/PCI"
 )
 
@@ -17,10 +18,28 @@ type GVOCP struct {
 	ocpInitialized   bool
 	cam              common.Camera
 	updatedCamValues chan updateValue
+	settings         []settings.Setting
+}
+
+func (ocp *GVOCP) Initialize() {
+
+}
+
+func (ocp *GVOCP) setupSettings() {
+	ocp.settings = []settings.Setting{
+		{
+			ParamType: settings.String,
+			DescriptorType: settings.String,
+			ParamID: "",
+		}
+	}
 }
 
 func (ocp *GVOCP) InitOCP(camera common.Camera, port string) {
+	ocp.updatedCamValues = make(chan updateValue)
+
 	ocp.cam = camera
+	ocp.cam.InformControllerAdd(ocp)
 
 	ocp.connection.SetPort(port, 1)
 	ocp.connection.SetDataMessageHandler(ocp.handleDataMessage)
@@ -31,8 +50,9 @@ func (ocp *GVOCP) InitOCP(camera common.Camera, port string) {
 
 	ocp.ocpInitialized = false
 
-	// Start running loop for OCP
-	go ocp.masterLoop()
+	// Start go routines for serial comms
+	go ocp.rxLoop()
+	go ocp.txLoop()
 }
 
 func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
@@ -40,18 +60,20 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 	switch pkt.Function {
 	case common.BlackMaster:
 		var params []byte
-		if ocp.ocpInitialized {
+		/*if ocp.ocpInitialized {
 			// Use extended 12-bit communication
 			evalue := make([]byte, 2)
 			binary.BigEndian.PutUint16(evalue, uint16(pkt.Value))
 
 			params = append(params, byte(MBLACK_12BIT_LEVEL))
 			params = append(params, evalue...)
-		} else {
-			// Use standard 8-bit communication
-			params = append(params, byte(MASTER_BLACK_LEVEL))
-			params = append(params, byte(pkt.Value))
-		}
+		} else {*/
+		// We must use standard 8-bit because 12-bit is broken on this
+		// one specific command for some reason
+		// Use standard 8-bit communication
+		params = append(params, byte(MASTER_BLACK_LEVEL))
+		params = append(params, byte(pkt.Value/16))
+		//}
 
 		ocp.scheduleDataMessage(
 			byte(ocp.ocp_pci_id),
@@ -129,10 +151,30 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 	}
 }
 
-func (ocp *GVOCP) masterLoop() {
-	// Main loop
+func (ocp *GVOCP) SetConnectedCamera(cam common.Camera) {
+	if ocp.cam != nil {
+		ocp.cam.InformControllerRemove(ocp)
+		ocp.cam = nil
+	}
+
+	ocp.cam = cam
+	ocp.cam.InformControllerAdd(ocp)
+}
+
+func (ocp *GVOCP) GetConnectedCamera() common.Camera {
+	return ocp.cam
+}
+
+// Main loop / go routine to handle incoming data from the serial port
+func (ocp *GVOCP) rxLoop() {
 	for {
-		// Handle outgoing data
+		ocp.connection.HandleData()
+	}
+}
+
+// Main loop / go routine to handle outgoing data to the serial port
+func (ocp *GVOCP) txLoop() {
+	for {
 		for val := range ocp.updatedCamValues {
 			ocp.txCount++
 			ocp.connection.SendDataMessage(
@@ -142,9 +184,6 @@ func (ocp *GVOCP) masterLoop() {
 				val.params,
 			)
 		}
-
-		// Handle incoming data
-		ocp.connection.HandleData()
 	}
 }
 
@@ -336,6 +375,42 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 			// Force update value
 			ocp.cam.UpdateValue(common.CameraCommand{
 				Function:   common.BlackMaster,
+				Value:      value,
+				Adjustment: common.Absolute,
+			})
+		case GAMMA_RED_LEVEL:
+			// Get params
+			value := int(params[2])
+			// Force update value
+			ocp.cam.UpdateValue(common.CameraCommand{
+				Function:   common.GammaRed,
+				Value:      value,
+				Adjustment: common.Absolute,
+			})
+		case GAMMA_GREEN_LEVEL:
+			// Get params
+			value := int(params[2])
+			// Force update value
+			ocp.cam.UpdateValue(common.CameraCommand{
+				Function:   common.GammaGreen,
+				Value:      value,
+				Adjustment: common.Absolute,
+			})
+		case GAMMA_BLUE_LEVEL:
+			// Get params
+			value := int(params[2])
+			// Force update value
+			ocp.cam.UpdateValue(common.CameraCommand{
+				Function:   common.GammaBlue,
+				Value:      value,
+				Adjustment: common.Absolute,
+			})
+		case MASTER_GAMMA_LEVEL:
+			// Get params
+			value := int(params[2])
+			// Force update value
+			ocp.cam.UpdateValue(common.CameraCommand{
+				Function:   common.GammaMaster,
 				Value:      value,
 				Adjustment: common.Absolute,
 			})
@@ -563,6 +638,42 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 				Value:      value,
 				Adjustment: common.Relative,
 			})
+		case GAMMA_RED_LEVEL:
+			// Get params
+			value := int(int8(params[2]))
+			// Update Value
+			ocp.cam.UpdateValue(common.CameraCommand{
+				Function:   common.GammaRed,
+				Value:      value,
+				Adjustment: common.Relative,
+			})
+		case GAMMA_GREEN_LEVEL:
+			// Get params
+			value := int(int8(params[2]))
+			// Update Value
+			ocp.cam.UpdateValue(common.CameraCommand{
+				Function:   common.GammaGreen,
+				Value:      value,
+				Adjustment: common.Relative,
+			})
+		case GAMMA_BLUE_LEVEL:
+			// Get params
+			value := int(int8(params[2]))
+			// Update Value
+			ocp.cam.UpdateValue(common.CameraCommand{
+				Function:   common.GammaBlue,
+				Value:      value,
+				Adjustment: common.Relative,
+			})
+		case MASTER_GAMMA_LEVEL:
+			// Get params
+			value := int(int8(params[2]))
+			// Update Value
+			ocp.cam.UpdateValue(common.CameraCommand{
+				Function:   common.GammaMaster,
+				Value:      value,
+				Adjustment: common.Relative,
+			})
 		}
 	case ABS_SWITCH_CMD:
 		switch GVSwitchParams(params[1]) {
@@ -580,7 +691,23 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 		case LAMP_OFF:
 		case REM_ASPECT_RATIO:
 		case MATRIX_GAMMA:
+			// Get params
+			value := int(int8(params[2]))
+			// Update Value
+			ocp.cam.UpdateValue(common.CameraCommand{
+				Function:   common.MatrixGamma,
+				Value:      value,
+				Adjustment: common.Absolute,
+			})
 		case KNEE_DESAT:
+			// Get params
+			value := int(int8(params[2]))
+			// Update Value
+			ocp.cam.UpdateValue(common.CameraCommand{
+				Function:   common.KneeDesaturationLevel,
+				Value:      value,
+				Adjustment: common.Absolute,
+			})
 		case AUTO_IRIS:
 			// Get params
 			value := int(int8(params[2]))
@@ -588,7 +715,7 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 			ocp.cam.UpdateValue(common.CameraCommand{
 				Function:   common.IrisAuto,
 				Value:      value,
-				Adjustment: common.Relative,
+				Adjustment: common.Absolute,
 			})
 		case CALL_SIG:
 			// Get params
@@ -597,7 +724,7 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 			ocp.cam.UpdateValue(common.CameraCommand{
 				Function:   common.CallSignal,
 				Value:      value,
-				Adjustment: common.Relative,
+				Adjustment: common.Absolute,
 			})
 		case BLACKSTRETCH_TYPE:
 		case CAMERA_DISABLE:
@@ -614,7 +741,7 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 			ocp.cam.UpdateValue(common.CameraCommand{
 				Function:   common.ColorBar,
 				Value:      value,
-				Adjustment: common.Relative,
+				Adjustment: common.Absolute,
 			})
 		}
 	}

@@ -100,11 +100,11 @@ func commonFunctionToGrassFunction(function common.CameraFunction) (GVCommand, i
 
 	switch function {
 	case common.CameraNumber:
-		return ABS_VALUE_CMD, int(BS_CAMERA_NUMBER)
+		return ABS_VALUE_CMD, int(SERIAL_CAMERA_NUMBER)
 	case common.CallSignal:
-		return ABS_VALUE_CMD, int(CALL_SIG)
+		return ABS_SWITCH_CMD, int(CALL_SIG)
 	case common.ColorBar:
-		return ABS_VALUE_CMD, int(COLOUR_BAR)
+		return ABS_SWITCH_CMD, int(COLOUR_BAR)
 	case common.GainRed:
 		return ABS_VALUE_CMD, int(GAIN_RED_LEVEL)
 	case common.GainGreen:
@@ -136,7 +136,7 @@ func commonFunctionToGrassFunction(function common.CameraFunction) (GVCommand, i
 	case common.MatrixBlueGreen:
 		return ABS_VALUE_CMD, int(MATRIX_BG)
 	case common.MatrixGamma:
-		return ABS_VALUE_CMD, int(MATRIX_GAMMA)
+		return ABS_SWITCH_CMD, int(MATRIX_GAMMA)
 	case common.IrisAuto:
 		return ABS_SWITCH_CMD, int(AUTO_IRIS)
 	case common.IrisExtended:

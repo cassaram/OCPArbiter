@@ -51,3 +51,24 @@ const (
 	Absolute CameraCommandAdjustment = iota
 	Relative
 )
+
+func GetCameraFunctionLimits(fun CameraFunction) (int, int) {
+	switch fun {
+	case CallSignal:
+		return 0, 1
+	case ColorBar:
+		return 0, 1
+	case GainMaster:
+		return 0, 4095
+	case BlackMaster:
+		return 0, 4095
+	case Iris:
+		return 0, 4095
+	case IrisAuto:
+		return 0, 1
+	case IrisExtended:
+		return 0, 1
+	default:
+		return 0, 255
+	}
+}
