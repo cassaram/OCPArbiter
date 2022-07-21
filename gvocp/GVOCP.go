@@ -2,7 +2,6 @@ package gvocp
 
 import (
 	"encoding/binary"
-	"fmt"
 
 	"github.com/cassaram/ocparbiter/common"
 	"github.com/cassaram/ocparbiter/common/settings"
@@ -218,7 +217,7 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 
 	command := params[0]
 
-	fmt.Println("Received data message:", command, "Params:", params[1:])
+	//fmt.Println("Received data message:", command, "Params:", params[1:])
 
 	switch GVCommand(command) {
 	case ABS_VALUE_CMD:

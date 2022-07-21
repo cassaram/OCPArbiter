@@ -1,7 +1,6 @@
 package pci
 
 import (
-	"fmt"
 	"log"
 
 	"go.bug.st/serial"
@@ -105,7 +104,7 @@ func (p *PCI) SendDataMessage(d_id byte, group byte, command byte, params []byte
 	pkt.destination_ID = d_id
 	pkt.parameters = txParams
 
-	fmt.Println("Sending data message: ", pkt)
+	//fmt.Println("Sending data message: ", pkt)
 
 	p.sendPacket(pkt)
 }
@@ -149,7 +148,6 @@ func (p *PCI) HandleData() {
 	// Check for packets in receive buffer
 	headerIndx := 0
 	for i, item := range p.rxBuffer {
-		fmt.Println("Buffer:", p.rxBuffer)
 		// Check if header
 		if item&0x80 != 0 {
 			headerIndx = i
