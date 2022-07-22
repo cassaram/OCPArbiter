@@ -4,11 +4,12 @@ import (
 	"encoding/binary"
 
 	"github.com/cassaram/ocparbiter/common"
-	"github.com/cassaram/ocparbiter/common/settings"
-	pci "github.com/cassaram/ocparbiter/gvocp/PCI"
+	pci "github.com/cassaram/ocparbiter/protocols/pci"
+	"github.com/cassaram/ocparbiter/settings"
 )
 
 type GVOCP struct {
+	systemSettings   common.SystemSettings
 	connection       pci.PCI
 	ocp_pci_id       uint8
 	ocp_grp_id       uint8
@@ -24,12 +25,36 @@ func (ocp *GVOCP) Initialize() {
 
 }
 
+func (ocp *GVOCP) GetSystemSettings() common.SystemSettings {
+	return ocp.systemSettings
+}
+
+func (ocp *GVOCP) SetSystemSettings(set common.SystemSettings) {
+	ocp.systemSettings = set
+}
+
+func (ocp *GVOCP) GetSettings() []settings.Setting {
+	return ocp.settings
+}
+
+func (ocp *GVOCP) SetSetting(newSetting settings.Setting) {
+	for idx, val := range ocp.settings {
+		if val.Id == newSetting.Id {
+			ocp.settings[idx] = newSetting
+		}
+	}
+}
+
 func (ocp *GVOCP) setupSettings() {
 	ocp.settings = []settings.Setting{
 		{
-			ParamType:      settings.String,
-			DescriptorType: settings.String,
-			ParamID:        "",
+			Type:  settings.TextInput,
+			Id:    "serial_port",
+			Label: "serial port",
+			Default: settings.SettingValue{
+				Text: "COM4",
+			},
+			Regex: "/COM\\d+/g",
 		},
 	}
 }
@@ -745,30 +770,4 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 		}
 	}
 
-}
-
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	} else {
-		return 0
-	}
-}
-
-func intToBool(i int) bool {
-	if i != 0 {
-		return true
-	} else {
-		return false
-	}
-}
-
-func calcAdjustedValue(original int, adjustment int, minClamp int, maxClamp int) (newVal int) {
-	newVal = original + adjustment
-	if newVal < minClamp {
-		newVal = minClamp
-	} else if newVal > maxClamp {
-		newVal = maxClamp
-	}
-	return
 }

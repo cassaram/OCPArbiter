@@ -6,7 +6,11 @@ type Camera interface {
 	// Initialization
 	Initialize()
 
-	// System
+	// Systems
+	GetSystemSettings() SystemSettings
+	SetSystemSettings(SystemSettings)
+
+	// Controller-specific
 	InformControllerAdd(Controller)
 	InformControllerRemove(Controller)
 	UpdateValue(CameraCommand)
