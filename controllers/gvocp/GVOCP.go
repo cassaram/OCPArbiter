@@ -16,8 +16,7 @@ import (
 
 type GVOCP struct {
 	systemSettings      common.SystemSettings
-	connection          pci.PCI
-	ocp_pci_id          uint8
+	connection          pci.PCIProtocol
 	ocp_grp_id          uint8
 	rxCount             uint16
 	txCount             uint16
@@ -25,6 +24,7 @@ type GVOCP struct {
 	ocpInitialized      bool
 	cam                 common.Camera
 	updatedCamValues    chan updateValue
+	rxDataMessages      chan pci.DataMessage
 	settings            []settings.Setting
 }
 
@@ -39,12 +39,16 @@ func (ocp *GVOCP) Initialize(loadedSettings []settings.Setting) {
 	ocp.initializedSettings = true
 
 	ocp.updatedCamValues = make(chan updateValue, 20)
+	ocp.rxDataMessages = make(chan pci.DataMessage, 20)
 
 	port, _ := ocp.GetSetting("serial_port")
 
-	ocp.connection.SetPort(port.Value.Text, 1)
-	ocp.connection.SetDataMessageHandler(ocp.handleDataMessage)
-	ocp.connection.SetInitConnectionHandler(ocp.initializeOCPValues)
+	ocp.connection = pci.PCIProtocol{
+		SerialPort:         port.Value.Text,
+		DataMessageReceive: ocp.rxDataMessages,
+		AppInitFunction:    ocp.initializeOCPValues,
+	}
+	ocp.connection.StartServices()
 
 	ocp.rxCount = 0
 	ocp.txCount = 0
@@ -127,18 +131,17 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 		// We must use standard 8-bit because 12-bit is broken on this
 		// one specific command for some reason
 		// Use standard 8-bit communication
+		params = append(params, byte(ABS_VALUE_CMD))
 		params = append(params, byte(MASTER_BLACK_LEVEL))
 		params = append(params, byte(pkt.Value/16))
 		//}
 
 		ocp.scheduleDataMessage(
-			byte(ocp.ocp_pci_id),
 			byte(ocp.ocp_grp_id),
-			byte(ABS_VALUE_CMD),
 			params,
 		)
 	case common.Iris:
-		var params []byte
+		params := []byte{byte(ABS_VALUE_CMD)}
 		if ocp.ocpInitialized {
 			// Use extended 12-bit communication
 			evalue := make([]byte, 2)
@@ -153,13 +156,11 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 		}
 
 		ocp.scheduleDataMessage(
-			byte(ocp.ocp_pci_id),
 			byte(ocp.ocp_grp_id),
-			byte(ABS_VALUE_CMD),
 			params,
 		)
 	case common.GainMaster:
-		var params []byte
+		params := []byte{byte(ABS_VALUE_CMD)}
 		// Use extended 12-bit communication
 		evalue := make([]byte, 2)
 		binary.BigEndian.PutUint16(evalue, uint16(pkt.Value))
@@ -168,9 +169,7 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 		params = append(params, evalue...)
 
 		ocp.scheduleDataMessage(
-			byte(ocp.ocp_pci_id),
 			byte(ocp.ocp_grp_id),
-			byte(ABS_VALUE_CMD),
 			params,
 		)
 	case common.FStop:
@@ -181,10 +180,9 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 		enum := fstopToEnum(value)
 
 		ocp.scheduleDataMessage(
-			byte(ocp.ocp_pci_id),
 			byte(ocp.ocp_grp_id),
-			byte(MODE_CMD),
 			[]byte{
+				byte(MODE_CMD),
 				byte(FSTOP_SELECT),
 				byte(enum),
 			},
@@ -195,10 +193,9 @@ func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {
 		// Utilize utility function to get data
 		mcmd, cmd := commonFunctionToGrassFunction(pkt.Function)
 		ocp.scheduleDataMessage(
-			byte(ocp.ocp_pci_id),
 			byte(ocp.ocp_grp_id),
-			byte(mcmd),
 			[]byte{
+				byte(mcmd),
 				byte(cmd),
 				byte(pkt.Value),
 			},
@@ -224,7 +221,10 @@ func (ocp *GVOCP) GetConnectedCamera() common.Camera {
 // Main loop / go routine to handle incoming data from the serial port
 func (ocp *GVOCP) rxLoop() {
 	for {
-		ocp.connection.HandleData()
+		for val := range ocp.rxDataMessages {
+			ocp.rxCount++
+			ocp.handleDataMessage(val.Group, val.Params)
+		}
 	}
 }
 
@@ -234,28 +234,23 @@ func (ocp *GVOCP) txLoop() {
 		for val := range ocp.updatedCamValues {
 			ocp.txCount++
 			ocp.connection.SendDataMessage(
-				val.d_id,
 				val.group,
-				val.masterCommand,
 				val.params,
 			)
 		}
 	}
 }
 
-func (ocp *GVOCP) scheduleDataMessage(d_id byte, group byte, command byte, params []byte) {
+func (ocp *GVOCP) scheduleDataMessage(group byte, params []byte) {
 	ocp.updatedCamValues <- updateValue{
-		d_id:          d_id,
-		group:         group,
-		masterCommand: command,
-		params:        params,
+		group:  group,
+		params: params,
 	}
 }
 
 // Function to initialize OCP with all values from the camera
-func (ocp *GVOCP) initializeOCPValues(s_id byte, group byte) {
+func (ocp *GVOCP) initializeOCPValues(group byte) {
 	// Set group and id
-	ocp.ocp_pci_id = uint8(s_id)
 	ocp.ocp_grp_id = uint8(group)
 
 	// Get and queue values
@@ -268,7 +263,7 @@ func (ocp *GVOCP) initializeOCPValues(s_id byte, group byte) {
 	ocp.ocpInitialized = true
 }
 
-func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
+func (ocp *GVOCP) handleDataMessage(group byte, params []byte) {
 	// Increment rx packets
 	ocp.rxCount++
 
@@ -478,18 +473,18 @@ func (ocp *GVOCP) handleDataMessage(s_id byte, group byte, params []byte) {
 			// Send data
 			cnt := make([]byte, 2)
 			binary.BigEndian.PutUint16(cnt, ocp.rxCount)
-			txParams := append([]byte{}, byte(PCI_CAM_RX_MSG_NR))
+			txParams := append([]byte{}, byte(ABS_VALUE_CMD), byte(PCI_CAM_RX_MSG_NR))
 			txParams = append(txParams, cnt[:]...)
-			ocp.scheduleDataMessage(s_id, group, byte(ABS_VALUE_CMD), txParams)
+			ocp.scheduleDataMessage(group, txParams)
 		case PCI_PANEL_TX_MSG_NR:
 			// Increment tx packets
 			ocp.txCount++
 			// Send data
 			cnt := make([]byte, 2)
 			binary.BigEndian.PutUint16(cnt, ocp.rxCount)
-			txParams := append([]byte{}, byte(PCI_CAM_RX_MSG_NR))
+			txParams := append([]byte{}, byte(ABS_VALUE_CMD), byte(PCI_CAM_RX_MSG_NR))
 			txParams = append(txParams, cnt[:]...)
-			ocp.scheduleDataMessage(s_id, group, byte(ABS_VALUE_CMD), txParams)
+			ocp.scheduleDataMessage(group, txParams)
 		}
 
 	// Value adjustment commands
