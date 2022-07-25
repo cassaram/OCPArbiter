@@ -1,6 +1,7 @@
 package pci
 
 import (
+	"fmt"
 	"log"
 
 	"go.bug.st/serial"
@@ -112,7 +113,7 @@ func (p *PCI) SendDataMessage(d_id byte, group byte, command byte, params []byte
 // Function to send a PCIPacket
 func (p *PCI) sendPacket(pkt PCIPacket) (err error) {
 	// Encode into byte slice
-	//fmt.Printf("Sending packet: %[1]v\n", pkt)
+	fmt.Printf("Sending packet: %[1]v\n", pkt)
 	dec_msg := pkt.packetToMessage()
 	//fmt.Printf("Sending decoded message: [% x]\n", dec_msg)
 	enc_msg := uuencode(dec_msg)
@@ -189,7 +190,7 @@ func msgExtract(src []byte, start int, end int) (dst []byte) {
 // Function to handle when a packet arrives
 // Will first handle PCI-protocol specified tasks, then offload to handler
 func (p *PCI) packetArrived(pkt PCIPacket) {
-	//fmt.Printf("Packet Arrived: %[1]v\n", pkt)
+	fmt.Printf("Packet Arrived: %[1]v\n", pkt)
 
 	switch pkt.command {
 	case DATA_MESSAGE:
@@ -250,11 +251,11 @@ func (p *PCI) handleTestRing(pkt PCIPacket) {
 	// Handle reset request
 	if resetRing {
 		// Reset all channel assignments
-		p.testRingInitialized = true
+		p.connectionState = PCI_WAIT_ASSIGN
 	}
 
 	// Ensure ring has already been reset
-	if !p.testRingInitialized {
+	if p.connectionState == PCI_WAIT_TEST_RING {
 		// Set reset request bit
 		flag |= 0x01
 	}
@@ -289,10 +290,11 @@ func (p *PCI) handleTestRing(pkt PCIPacket) {
 
 	p.sendPacket(txPkt)
 
-	// Check and update connection state
-	if p.connectionState == PCI_WAIT_TEST_RING {
-		p.connectionState = PCI_WAIT_ASSIGN
-	}
+	/*
+		// Check and update connection state
+		if p.connectionState == PCI_WAIT_TEST_RING {
+			p.connectionState = PCI_WAIT_ASSIGN
+		}*/
 }
 
 // Handles ASSIGN_TO_GROUP messages

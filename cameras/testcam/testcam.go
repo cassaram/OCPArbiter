@@ -5,9 +5,10 @@ import (
 )
 
 type TestCam struct {
+	systemSettings   common.SystemSettings
 	controllers      []common.Controller
 	cameraInterface  testCamCameraInterface
-	cache            map[common.CameraFunction]int
+	cache            safeCameraFunctionInt
 	controllersQueue chan common.ControllerCommand
 	cameraQueue      chan common.CameraCommand
 	cacheInitialized bool
@@ -15,9 +16,9 @@ type TestCam struct {
 
 func (c *TestCam) Initialize() {
 	// Initialize variables
-	c.cache = make(map[common.CameraFunction]int)
-	c.controllersQueue = make(chan common.ControllerCommand)
-	c.cameraQueue = make(chan common.CameraCommand)
+	c.cache = *newSafeCameraFunctionInt()
+	c.controllersQueue = make(chan common.ControllerCommand, 20)
+	c.cameraQueue = make(chan common.CameraCommand, 20)
 	c.cacheInitialized = false
 
 	c.cameraInterface = testCamCameraInterface{}
@@ -27,6 +28,14 @@ func (c *TestCam) Initialize() {
 	go c.cacheLoop()
 	go c.rxLoop()
 	go c.txLoop()
+}
+
+func (c *TestCam) GetSystemSettings() common.SystemSettings {
+	return c.systemSettings
+}
+
+func (c *TestCam) SetSystemSettings(s common.SystemSettings) {
+	c.systemSettings = s
 }
 
 func (c *TestCam) InformControllerAdd(ctrl common.Controller) {
@@ -73,9 +82,12 @@ func (c *TestCam) RequestAllValues() []common.ControllerCommand {
 func (c *TestCam) txLoop() {
 	for {
 		// Update controllers
-		for pkt := range c.controllersQueue {
-			for _, ctrl := range c.controllers {
-				ctrl.UpdateValue(pkt)
+		// Ensure controller is available
+		if len(c.controllers) > 0 {
+			for pkt := range c.controllersQueue {
+				for _, ctrl := range c.controllers {
+					ctrl.UpdateValue(pkt)
+				}
 			}
 		}
 	}
@@ -298,12 +310,7 @@ func (c *TestCam) initCache() {
 	for key, s := range c.getSupportedFunctions() {
 		val := s.getter()
 		// Update value
-		c.cache[key] = val
-		// Queue update
-		c.controllersQueue <- common.ControllerCommand{
-			Function: key,
-			Value:    val,
-		}
+		c.cache.Set(key, val)
 	}
 
 	c.cacheInitialized = true
@@ -312,9 +319,9 @@ func (c *TestCam) initCache() {
 func (c *TestCam) updateCache() {
 	for key, s := range c.getSupportedFunctions() {
 		val := s.getter()
-		if c.cache[key] != val {
+		if cVal, _ := c.cache.Get(key); cVal != val {
 			// Update value
-			c.cache[key] = val
+			c.cache.Set(key, val)
 			// Queue update
 			c.controllersQueue <- common.ControllerCommand{
 				Function: key,

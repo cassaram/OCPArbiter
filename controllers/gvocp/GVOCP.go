@@ -2,6 +2,12 @@ package gvocp
 
 import (
 	"encoding/binary"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/cassaram/ocparbiter/common"
 	pci "github.com/cassaram/ocparbiter/protocols/pci"
@@ -9,63 +15,34 @@ import (
 )
 
 type GVOCP struct {
-	systemSettings   common.SystemSettings
-	connection       pci.PCI
-	ocp_pci_id       uint8
-	ocp_grp_id       uint8
-	rxCount          uint16
-	txCount          uint16
-	ocpInitialized   bool
-	cam              common.Camera
-	updatedCamValues chan updateValue
-	settings         []settings.Setting
+	systemSettings      common.SystemSettings
+	connection          pci.PCI
+	ocp_pci_id          uint8
+	ocp_grp_id          uint8
+	rxCount             uint16
+	txCount             uint16
+	initializedSettings bool
+	ocpInitialized      bool
+	cam                 common.Camera
+	updatedCamValues    chan updateValue
+	settings            []settings.Setting
 }
 
-func (ocp *GVOCP) Initialize() {
+func (ocp *GVOCP) Initialize(loadedSettings []settings.Setting) {
+	// Load default settings
+	ocp.loadDefaultSettings()
 
-}
-
-func (ocp *GVOCP) GetSystemSettings() common.SystemSettings {
-	return ocp.systemSettings
-}
-
-func (ocp *GVOCP) SetSystemSettings(set common.SystemSettings) {
-	ocp.systemSettings = set
-}
-
-func (ocp *GVOCP) GetSettings() []settings.Setting {
-	return ocp.settings
-}
-
-func (ocp *GVOCP) SetSetting(newSetting settings.Setting) {
-	for idx, val := range ocp.settings {
-		if val.Id == newSetting.Id {
-			ocp.settings[idx] = newSetting
-		}
+	// Load changed settings
+	for _, val := range loadedSettings {
+		ocp.SetSetting(val)
 	}
-}
+	ocp.initializedSettings = true
 
-func (ocp *GVOCP) setupSettings() {
-	ocp.settings = []settings.Setting{
-		{
-			Type:  settings.TextInput,
-			Id:    "serial_port",
-			Label: "serial port",
-			Default: settings.SettingValue{
-				Text: "COM4",
-			},
-			Regex: "/COM\\d+/g",
-		},
-	}
-}
+	ocp.updatedCamValues = make(chan updateValue, 20)
 
-func (ocp *GVOCP) InitOCP(camera common.Camera, port string) {
-	ocp.updatedCamValues = make(chan updateValue)
+	port, _ := ocp.GetSetting("serial_port")
 
-	ocp.cam = camera
-	ocp.cam.InformControllerAdd(ocp)
-
-	ocp.connection.SetPort(port, 1)
+	ocp.connection.SetPort(port.Value.Text, 1)
 	ocp.connection.SetDataMessageHandler(ocp.handleDataMessage)
 	ocp.connection.SetInitConnectionHandler(ocp.initializeOCPValues)
 
@@ -77,6 +54,61 @@ func (ocp *GVOCP) InitOCP(camera common.Camera, port string) {
 	// Start go routines for serial comms
 	go ocp.rxLoop()
 	go ocp.txLoop()
+}
+
+func (ocp *GVOCP) GetSystemSettings() common.SystemSettings {
+	return ocp.systemSettings
+}
+
+func (ocp *GVOCP) SetSystemSettings(set common.SystemSettings) {
+	ocp.systemSettings = set
+}
+
+func (ocp *GVOCP) GetSettings() []settings.Setting {
+	if !ocp.initializedSettings {
+		ocp.loadDefaultSettings()
+	}
+	return ocp.settings
+}
+
+func (ocp *GVOCP) GetSetting(id string) (settings.Setting, error) {
+	for _, val := range ocp.settings {
+		if val.Id == id {
+			return val, nil
+		}
+	}
+
+	return settings.Setting{}, errors.New("setting not found")
+}
+
+func (ocp *GVOCP) SetSetting(newSetting settings.Setting) {
+	for idx, val := range ocp.settings {
+		if val.Id == newSetting.Id {
+			ocp.settings[idx] = newSetting
+		}
+	}
+}
+
+func (ocp *GVOCP) loadDefaultSettings() {
+	fpath, _ := filepath.Abs("../controllers/gvocp/DefaultSettings.json")
+	file, err := os.Open(fpath)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer file.Close()
+
+	byteFile, _ := ioutil.ReadAll(file)
+
+	var settings []settings.Setting
+	json.Unmarshal(byteFile, &settings)
+
+	// Load defaults into values
+	for idx, _ := range settings {
+		settings[idx].Value = settings[idx].Default
+	}
+
+	ocp.settings = settings
 }
 
 func (ocp *GVOCP) UpdateValue(pkt common.ControllerCommand) {

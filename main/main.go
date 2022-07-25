@@ -1,9 +1,10 @@
 package main
 
 import (
+	"github.com/cassaram/ocparbiter/cameras/testcam"
 	"github.com/cassaram/ocparbiter/common"
-	"github.com/cassaram/ocparbiter/gvocp"
-	"github.com/cassaram/ocparbiter/testcam"
+	"github.com/cassaram/ocparbiter/controllers/gvocp"
+	"github.com/cassaram/ocparbiter/settings"
 )
 
 func main() {
@@ -18,7 +19,9 @@ func main() {
 		Adjustment: common.Absolute,
 	})
 
-	ocp.InitOCP(cam, "COM4")
+	ocp.SetConnectedCamera(cam)
+	ocp.Initialize([]settings.Setting{})
+	//fmt.Println(ocp.GetSettings())
 
 	// Dead loop
 	for {
