@@ -1,18 +1,27 @@
 package common
 
+import (
+	"github.com/cassaram/ocparbiter/settings"
+	"github.com/google/uuid"
+)
+
 // Implements an interface for a camera
 
 type Camera interface {
-	// Initialization
-	Initialize()
+	// Handle service
+	Start()
+	Stop()
+	Restart()
 
-	// Systems
-	GetSystemSettings() SystemSettings
-	SetSystemSettings(SystemSettings)
+	// Configuration and Settings
+	GetConfig() CameraConfig
+	UpdateDeviceSettings([]settings.Setting)
+	GetID() uuid.UUID
 
 	// Controller-specific
-	InformControllerAdd(Controller)
-	InformControllerRemove(Controller)
+	ControllerAdd(Controller)
+	ControllerRemove(Controller)
+
 	UpdateValue(CameraCommand)
-	RequestAllValues() []ControllerCommand
+	SendAllValues()
 }

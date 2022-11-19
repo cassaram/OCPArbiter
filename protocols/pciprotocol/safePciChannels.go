@@ -1,4 +1,4 @@
-package pci
+package pciprotocol
 
 import "sync"
 

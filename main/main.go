@@ -3,12 +3,12 @@ package main
 import (
 	"github.com/cassaram/ocparbiter/cameras/testcam"
 	"github.com/cassaram/ocparbiter/common"
-	"github.com/cassaram/ocparbiter/controllers/gvocp"
-	"github.com/cassaram/ocparbiter/settings"
+	"github.com/cassaram/ocparbiter/controllers/gvserialbasiccontroller"
 )
 
 func main() {
-	var ocp gvocp.GVOCP
+	var ocp gvserialbasiccontroller.GVSerialBasicController
+	controller := common.Controller(&ocp)
 	var testCam testcam.TestCam
 	cam := common.Camera(&testCam)
 
@@ -19,8 +19,7 @@ func main() {
 		Adjustment: common.Absolute,
 	})
 
-	ocp.SetConnectedCamera(cam)
-	ocp.Initialize([]settings.Setting{})
+	cam.InformControllerAdd(controller)
 	//fmt.Println(ocp.GetSettings())
 
 	// Dead loop

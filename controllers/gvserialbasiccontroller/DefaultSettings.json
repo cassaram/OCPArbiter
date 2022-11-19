@@ -1,0 +1,9 @@
+[
+    {
+        "type":  "text_input",
+        "id":    "serial_port",
+        "label": "serial port",
+        "default": "COM4",
+        "regex": "/COM\\d+/g"
+    }
+]

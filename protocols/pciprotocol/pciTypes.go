@@ -1,4 +1,4 @@
-package pci
+package pciprotocol
 
 // Defines various enums and types used by the pci service
 

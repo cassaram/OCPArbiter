@@ -1,4 +1,4 @@
-package pci
+package pciprotocol
 
 // Performs uuencoding in compliance with the PCI protocol
 func uuencode(src []byte) []byte {

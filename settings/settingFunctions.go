@@ -16,7 +16,7 @@ func ValidateSetting(s Setting) bool {
 		// Ensure value is a listed enum
 		matchedNumber := false
 		for _, val := range s.EnumList {
-			if val.Value == s.Value.Number {
+			if val.Value == s.Value {
 				matchedNumber = true
 				break
 			}

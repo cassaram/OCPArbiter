@@ -3,7 +3,8 @@ package common
 type CameraFunction uint8
 
 const (
-	CameraNumber CameraFunction = iota
+	NOFUNC_ERR CameraFunction = iota
+	CameraNumber
 	CallSignal
 	ColorBar
 	GainMaster
@@ -14,35 +15,32 @@ const (
 	BlackRed
 	BlackGreen
 	BlackBlue
+	FlareMode
 	FlareRed
 	FlareGreen
 	FlareBlue
-	MatrixRedGreen
-	MatrixRedBlue
-	MatrixGreenRed
-	MatrixGreenBlue
-	MatrixBlueRed
-	MatrixBlueGreen
-	MatrixGamma
 	Iris
 	FStop
 	IrisAuto
 	IrisExtended
+	KneeMode
 	KneeLevel
 	KneeDesaturationLevel
-	KneeSlope
 	KneeSlopeRed
 	KneeSlopeBlue
 	KneeAttack
 	KneeAttackRed
 	KneeAttackBlue
 	KneePoint
+	GammaMode
 	GammaMaster
 	GammaRed
 	GammaGreen
 	GammaBlue
+	WhiteBalanceMode
 	WhiteBalanceRed
 	WhiteBalanceBlue
+	WhiteBalanceAutoAction
 )
 
 type CameraCommandAdjustment uint8

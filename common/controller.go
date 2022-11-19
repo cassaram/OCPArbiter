@@ -3,7 +3,12 @@ package common
 import "github.com/cassaram/ocparbiter/settings"
 
 type Controller interface {
-	Initialize([]settings.Setting)
+	Start()
+	Stop()
+	Restart()
+
+	GetConfig() ControllerConfig
+	UpdateDeviceSettings([]settings.Setting)
 
 	GetConnectedCamera() Camera
 	SetConnectedCamera(Camera)

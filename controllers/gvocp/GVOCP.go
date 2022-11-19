@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/cassaram/ocparbiter/common"
-	pci "github.com/cassaram/ocparbiter/protocols/pci"
+	"github.com/cassaram/ocparbiter/protocols/pci"
 	"github.com/cassaram/ocparbiter/settings"
 )
 
@@ -44,7 +44,7 @@ func (ocp *GVOCP) Initialize(loadedSettings []settings.Setting) {
 	port, _ := ocp.GetSetting("serial_port")
 
 	ocp.connection = pci.PCIProtocol{
-		SerialPort:         port.Value.Text,
+		SerialPort:         port.Value,
 		DataMessageReceive: ocp.rxDataMessages,
 		AppInitFunction:    ocp.initializeOCPValues,
 	}
